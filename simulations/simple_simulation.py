@@ -1,93 +1,77 @@
-"""Run a simple URP simulation with three agents.
-
-This script creates one ResearcherAgent, one ChallengerAgent and one
-VerifierAgent. The Researcher submits a claim based on an input query,
-the Challenger evaluates it and either accepts or challenges, and the
-Verifier makes a final decision. Results are printed to stdout.
-"""
-
-from __future__ import annotations
+"""Run a simple URP simulation with JSON messages."""
 
 import logging
 import os
 import sys
 
-# Ensure the parent directory is on the module search path so that
-# `import urp` works when this script is run directly with
-# `python simulations/simple_simulation.py`. Without this, Python will not
-# find the sibling package because it only adds the script's directory to
-# sys.path by default.
+# fix imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from urp.agent import ResearcherAgent, ChallengerAgent, VerifierAgent
 from urp.ledger import Ledger
-
+from urp.message import URPMessage
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-
 def run_simulation() -> None:
-    """Run a simulation with balances and staking."""
     query = "What is the boiling point of water at sea level?"
     researcher = ResearcherAgent(name="Researcher")
     challenger = ChallengerAgent(name="Challenger")
     verifier = VerifierAgent(name="Verifier")
 
-    # Set up a ledger and deposit initial balances
     ledger = Ledger()
-    for agent in (researcher.name, challenger.name, verifier.name):
-        ledger.deposit(agent, 1.0)  # each starts with 1 URC
+    for name in (researcher.name, challenger.name, verifier.name):
+        ledger.deposit(name, 1.0)
 
-    logging.info("Initial balances:")
-    for agent in ledger.balances:
-        logging.info(f"  {agent}: {ledger.get_balance(agent):.2f} URC")
+    logging.info("=== Initial Balances ===")
+    for name, bal in ledger.balances.items():
+        logging.info(f"{name}: {bal:.2f} URC")
+    logging.info("")
 
-    # Researcher creates a claim and stakes some credits
+    # 1) Researcher creates claim
     claim = researcher.create_claim(query)
-    logging.info(f"\n{researcher} created claim {claim.id} with stake {claim.stake.amount:.2f} URC")
-    try:
-        ledger.withdraw(researcher.name, claim.stake.amount)
-    except ValueError as e:
-        logging.error(e)
-        return
+    msg_claim = URPMessage("claim", claim, researcher.name)
+    compact = msg_claim.to_json(compact=True)
+    pretty = msg_claim.to_json(compact=False)
+    logging.info("Sending CLAIM message (compact):")
+    logging.info(compact)
+    logging.info("\nReceived CLAIM message (pretty):")
+    logging.info(pretty)
 
-    # Challenger evaluates the claim
-    resp_challenger = challenger.evaluate_claim(claim)
-    logging.info(f"{challenger} responded: {resp_challenger.decision.value}")
-    if resp_challenger.decision == "challenge" and resp_challenger.stake:
-        try:
-            ledger.withdraw(challenger.name, resp_challenger.stake.amount)
-        except ValueError as e:
-            logging.error(e)
-            return
+    # Simulate withdrawing stake
+    ledger.withdraw(researcher.name, claim.stake.amount)
 
-    # Verifier evaluates the claim
-    resp_verifier = verifier.evaluate_claim(claim)
-    logging.info(f"{verifier} final decision: {resp_verifier.decision.value}\n")
+    # 2) Challenger evaluates
+    response = challenger.evaluate_claim(claim)
+    msg_challenge = URPMessage("response", response, challenger.name)
+    logging.info("\nSending CHALLENGE message:")
+    logging.info(msg_challenge.to_json(compact=True))
 
-    # Settlement logic
-    if resp_verifier.decision == "accept":
-        # Researcher gets stake back and collects challenger's stake if any
+    if response.stake:
+        ledger.withdraw(challenger.name, response.stake.amount)
+
+    # 3) Verifier evaluates
+    final_resp = verifier.evaluate_claim(claim)
+    msg_verifier = URPMessage("response", final_resp, verifier.name)
+    logging.info("\nSending VERIFICATION message:")
+    logging.info(msg_verifier.to_json(compact=False))
+
+    # Settlement
+    if final_resp.decision.value == "accept":
         ledger.deposit(researcher.name, claim.stake.amount)
-        if resp_challenger.decision == "challenge" and resp_challenger.stake:
-            ledger.deposit(researcher.name, resp_challenger.stake.amount)
-            logging.info("Claim accepted; Researcher keeps their stake and wins Challenger's stake.")
-        else:
-            logging.info("Claim accepted; Researcher keeps their stake.")
+        if response.decision.value == "challenge" and response.stake:
+            ledger.deposit(researcher.name, response.stake.amount)
+            logging.info("\nClaim accepted; Researcher wins Challenger’s stake.")
     else:
-        # Stake is forfeited to challenger or burnt
-        if resp_challenger.decision == "challenge" and resp_challenger.stake:
-            # Challenger wins both stakes
-            ledger.deposit(challenger.name, claim.stake.amount + resp_challenger.stake.amount)
-            logging.info("Claim rejected; Challenger collects both stakes.")
+        if response.decision.value == "challenge" and response.stake:
+            ledger.deposit(challenger.name, claim.stake.amount + response.stake.amount)
+            logging.info("\nClaim rejected; Challenger collects both stakes.")
         else:
-            # No challenger; stakes are burnt (do nothing)
-            logging.info("Claim rejected; Researcher's stake is burnt.")
+            logging.info("\nClaim rejected; Researcher’s stake is burnt.")
 
-    logging.info("\nFinal balances:")
-    for agent, balance in ledger.balances.items():
-        logging.info(f"  {agent}: {balance:.2f} URC")
-
+    logging.info("\n=== Final Balances ===")
+    for name, bal in ledger.balances.items():
+        logging.info(f"{name}: {bal:.2f} URC")
 
 if __name__ == "__main__":
     run_simulation()
