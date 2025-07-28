@@ -22,6 +22,7 @@ from typing import Optional
 import random
 
 from .core import Claim, ClaimType, Response, Decision, ProofReference, Stake
+from .knowledge_base import get_fact
 
 
 class Agent(ABC):
@@ -46,12 +47,18 @@ class ResearcherAgent(Agent):
     """Agent that formulates claims from queries."""
 
     def create_claim(self, query: str) -> Claim:
-        # For the initial prototype, simply echo the query as the statement.
-        # In a real implementation, this agent would research the query,
-        # assemble evidence and provide a proof reference.
+        """Create a claim from a query with an attached proof summary.
+
+        If the knowledge base contains an answer, include it in the proof
+        summary. Otherwise, state that the answer is unknown. In a real
+        implementation, the proof reference would point to a verifiable
+        reasoning trace.
+        """
         claim_id = str(uuid.uuid4())
-        proof = ProofReference(hash="dummyhash", location="ipfs://dummy", summary="Mock proof")
-        stake = Stake(amount=0.1)  # place a small stake
+        answer = get_fact(query) or "unknown"
+        proof_summary = answer
+        proof = ProofReference(hash="dummyhash", location="ipfs://dummy", summary=proof_summary)
+        stake = Stake(amount=0.1)
         return Claim(
             id=claim_id,
             statement=query,
@@ -101,12 +108,19 @@ class VerifierAgent(Agent):
         raise NotImplementedError
 
     def evaluate_claim(self, claim: Claim) -> Response:
-        # Simple heuristic: randomly accept or reject with equal probability if challenged
-        # Otherwise, echo the accept decision
-        # In practice, the verifier would inspect the proof and decide deterministically
-        if claim.proof_ref and claim.stake.amount > 0:
-            # Simulate verification: 80% chance to accept
-            decision = Decision.ACCEPT if random.random() < 0.8 else Decision.REJECT
+        """Evaluate a claim by checking it against the knowledge base.
+
+        If the claim's statement matches a known fact and the proof summary
+        equals that fact, accept the claim. Otherwise, reject it. If the
+        question is unknown in the knowledge base, default to reject.
+        """
+        expected_answer = get_fact(claim.statement)
+        provided_answer = claim.proof_ref.summary if claim.proof_ref else None
+        if expected_answer is None:
+            # Unknown question
+            decision = Decision.REJECT
+        elif expected_answer == provided_answer:
+            decision = Decision.ACCEPT
         else:
             decision = Decision.REJECT
         return Response(
