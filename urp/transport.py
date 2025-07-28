@@ -22,28 +22,27 @@ class AgentServer:
         """Handle incoming WebSocket connections and dispatch URP messages."""
         try:
             async for raw in websocket:
-                # Determine message type from JSON
                 data = json.loads(raw)
                 msg_type = data.get("type")
                 payload_cls = Claim if msg_type == "claim" else Response
 
-                # Reconstruct the URPMessage
                 incoming = URPMessage.from_json(raw, payload_cls=payload_cls)
 
-                # Dispatch on message type
                 if incoming.type == "claim":
-                    # process a claim → returns a Response object
-                    response = await self.agent.evaluate_claim(incoming.payload)
+                    # CALL SYNC method directly (no await)
+                    response = self.agent.evaluate_claim(incoming.payload)
                     reply = URPMessage("response", response, self.agent.name)
                     await websocket.send(reply.to_json(compact=True))
 
                 elif incoming.type == "response":
-                    # allow agents to handle responses too
-                    result_msg = await self.agent.process_message(incoming)
-                    if result_msg:
-                        await websocket.send(result_msg.to_json(compact=True))
+                    # process_message may be sync or async; handle both
+                    proc = self.agent.process_message(incoming)
+                    if asyncio.iscoroutine(proc):
+                        proc = await proc
+                    if proc:
+                        await websocket.send(proc.to_json(compact=True))
 
-                # extend with further types (e.g. "settlement") as needed
+                # Add other message types here...
 
         except Exception as e:
             print(f"Connection handler error: {e}")
