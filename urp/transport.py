@@ -23,12 +23,9 @@ class AgentServer:
             async for raw in websocket:
                 data = json.loads(raw)
                 if data.get("type") != "claim":
-                    # ignore non-claim messages
                     continue
 
-                # Deserialize the Claim
                 incoming = URPMessage.from_json(raw, payload_cls=Claim)
-                # Evaluate and build a response
                 response: Response = self.agent.evaluate_claim(incoming.payload)
                 reply = URPMessage("response", response, self.agent.name)
                 await websocket.send(reply.to_json(compact=True))
@@ -56,7 +53,4 @@ class AgentClient:
         async with websockets.connect(self.target_uri) as ws:
             await ws.send(urp_msg.to_json(compact=True))
             raw = await ws.recv()
-            data = json.loads(raw)
-            # Determine whether the reply payload is a Response
-            # (our server only ever sends Response messages)
             return URPMessage.from_json(raw, payload_cls=Response)
