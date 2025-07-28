@@ -10,8 +10,7 @@ from urp.core import Claim, Response
 class AgentServer:
     """
     A WebSocket server wrapping an Agent.
-    Listens for URPMessage JSON, deserializes into Claim/Response,
-    invokes the agent, then sends back a URPMessage reply.
+    Only handles incoming 'claim' messages and returns a 'response'.
     """
     def __init__(self, agent, host: str = "localhost", port: int = 8000):
         self.agent = agent
@@ -19,37 +18,27 @@ class AgentServer:
         self.port = port
 
     async def handler(self, websocket):
-        """Handle incoming WebSocket connections and dispatch URP messages."""
+        """Receive JSON, parse as Claim, call evaluate_claim, send back a Response."""
         try:
             async for raw in websocket:
                 data = json.loads(raw)
-                msg_type = data.get("type")
-                payload_cls = Claim if msg_type == "claim" else Response
+                if data.get("type") != "claim":
+                    # ignore non-claim messages
+                    continue
 
-                incoming = URPMessage.from_json(raw, payload_cls=payload_cls)
-
-                if incoming.type == "claim":
-                    # CALL SYNC method directly (no await)
-                    response = self.agent.evaluate_claim(incoming.payload)
-                    reply = URPMessage("response", response, self.agent.name)
-                    await websocket.send(reply.to_json(compact=True))
-
-                elif incoming.type == "response":
-                    # process_message may be sync or async; handle both
-                    proc = self.agent.process_message(incoming)
-                    if asyncio.iscoroutine(proc):
-                        proc = await proc
-                    if proc:
-                        await websocket.send(proc.to_json(compact=True))
-
-                # Add other message types here...
+                # Deserialize the Claim
+                incoming = URPMessage.from_json(raw, payload_cls=Claim)
+                # Evaluate and build a response
+                response: Response = self.agent.evaluate_claim(incoming.payload)
+                reply = URPMessage("response", response, self.agent.name)
+                await websocket.send(reply.to_json(compact=True))
 
         except Exception as e:
             print(f"Connection handler error: {e}")
 
     def start(self):
         """
-        Launch the WebSocket server. Usage:
+        Launch the WebSocket server:
             await websockets.serve(self.handler, self.host, self.port)
         """
         return websockets.serve(self.handler, self.host, self.port)
@@ -57,22 +46,17 @@ class AgentServer:
 
 class AgentClient:
     """
-    A simple WebSocket client for sending one URPMessage
-    and waiting for one reply.
+    A WebSocket client that sends one URPMessage and waits for one reply.
     """
     def __init__(self, sender_name: str, target_uri: str):
         self.sender = sender_name
         self.target_uri = target_uri
 
     async def send(self, urp_msg: URPMessage) -> URPMessage:
-        """
-        Connect, send the URPMessage (compact JSON), await one reply,
-        and return the reconstructed URPMessage.
-        """
         async with websockets.connect(self.target_uri) as ws:
             await ws.send(urp_msg.to_json(compact=True))
             raw = await ws.recv()
             data = json.loads(raw)
-            msg_type = data.get("type")
-            payload_cls = Claim if msg_type == "claim" else Response
-            return URPMessage.from_json(raw, payload_cls=payload_cls)
+            # Determine whether the reply payload is a Response
+            # (our server only ever sends Response messages)
+            return URPMessage.from_json(raw, payload_cls=Response)
