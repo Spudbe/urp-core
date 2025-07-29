@@ -7,7 +7,6 @@
 ## 2. Core Message Types & JSON Schemas
 
 ### 2.1 Claim
-
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -103,7 +102,6 @@
 ```
 
 ### 2.2 ProofReference
-
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -132,7 +130,6 @@
 ```
 
 ### 2.3 Stake
-
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -162,7 +159,6 @@
 ```
 
 ### 2.4 Response
-
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
