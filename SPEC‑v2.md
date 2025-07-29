@@ -1,3 +1,4 @@
+````markdown
 # Universal Reasoning Protocol – Detailed Specification (v2)
 
 ## 1. Introduction
@@ -15,27 +16,11 @@
   "type": "object",
   "required": ["id", "statement", "type", "proof_ref", "stake"],
   "properties": {
-    "id": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Unique identifier for the claim."
-    },
-    "statement": {
-      "type": "string",
-      "minLength": 1,
-      "description": "The propositional content of the claim."
-    },
-    "type": {
-      "type": "string",
-      "enum": ["assertion", "request"],
-      "description": "Whether this is an assertion of fact or a request for data/action."
-    },
-    "proof_ref": {
-      "$ref": "#/$defs/ProofReference"
-    },
-    "stake": {
-      "$ref": "#/$defs/Stake"
-    }
+    "id": { "type": "string", "format": "uuid", "description": "Unique identifier for the claim." },
+    "statement": { "type": "string", "minLength": 1, "description": "The propositional content of the claim." },
+    "type": { "type": "string", "enum": ["assertion", "request"], "description": "Whether this is an assertion of fact or a request for data/action." },
+    "proof_ref": { "$ref": "#/$defs/ProofReference" },
+    "stake": { "$ref": "#/$defs/Stake" }
   },
   "additionalProperties": false,
   "$defs": {
@@ -43,19 +28,9 @@
       "type": "object",
       "required": ["hash", "location", "summary"],
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Cryptographic hash of the proof data (e.g. SHA-256)."
-        },
-        "location": {
-          "type": "string",
-          "format": "uri",
-          "description": "URI where the proof can be retrieved (e.g. IPFS link)."
-        },
-        "summary": {
-          "type": "string",
-          "description": "Short human-readable summary of the proof contents."
-        }
+        "hash": { "type": "string", "description": "Cryptographic hash of the proof data (e.g. SHA‑256)." },
+        "location": { "type": "string", "format": "uri", "description": "URI where the proof can be retrieved (e.g. IPFS link)." },
+        "summary": { "type": "string", "description": "Short human‑readable summary of the proof contents." }
       },
       "additionalProperties": false
     },
@@ -63,20 +38,9 @@
       "type": "object",
       "required": ["amount", "currency", "refundable"],
       "properties": {
-        "amount": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Quantity of URP credits locked with the claim."
-        },
-        "currency": {
-          "type": "string",
-          "pattern": "^[A-Z]{3,5}$",
-          "description": "Unit of account (e.g. ‘URC’)."
-        },
-        "refundable": {
-          "type": "boolean",
-          "description": "Whether the stake is returned on acceptance."
-        }
+        "amount": { "type": "number", "minimum": 0, "description": "Quantity of URP credits locked with the claim." },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3,5}$", "description": "Unit of account (e.g. 'URC')." },
+        "refundable": { "type": "boolean", "description": "Whether the stake is returned on acceptance." }
       },
       "additionalProperties": false
     }
@@ -91,11 +55,7 @@
         "location": "ipfs://QmExampleHash",
         "summary": "Exactly 100°C at standard pressure."
       },
-      "stake": {
-        "amount": 0.5,
-        "currency": "URC",
-        "refundable": true
-      }
+      "stake": { "amount": 0.5, "currency": "URC", "refundable": true }
     }
   ]
 }
@@ -111,19 +71,9 @@
   "type": "object",
   "required": ["hash", "location", "summary"],
   "properties": {
-    "hash": {
-      "type": "string",
-      "description": "Cryptographic hash of the proof data (e.g. SHA-256)."
-    },
-    "location": {
-      "type": "string",
-      "format": "uri",
-      "description": "URI where the proof can be retrieved (e.g. IPFS link)."
-    },
-    "summary": {
-      "type": "string",
-      "description": "Short human-readable summary of the proof contents."
-    }
+    "hash": { "type": "string", "description": "Cryptographic hash of the proof data (e.g. SHA‑256)." },
+    "location": { "type": "string", "format": "uri", "description": "URI where the proof can be retrieved (e.g. IPFS link)." },
+    "summary": { "type": "string", "description": "Short human‑readable summary of the proof contents." }
   },
   "additionalProperties": false
 }
@@ -139,20 +89,9 @@
   "type": "object",
   "required": ["amount", "currency", "refundable"],
   "properties": {
-    "amount": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Quantity of URP credits locked with the claim."
-    },
-    "currency": {
-      "type": "string",
-      "pattern": "^[A-Z]{3,5}$",
-      "description": "Unit of account (e.g. ‘URC’)."
-    },
-    "refundable": {
-      "type": "boolean",
-      "description": "Whether the stake is returned on acceptance."
-    }
+    "amount": { "type": "number", "minimum": 0, "description": "Quantity of URP credits locked with the claim." },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3,5}$", "description": "Unit of account (e.g. 'URC')." },
+    "refundable": { "type": "boolean", "description": "Whether the stake is returned on acceptance." }
   },
   "additionalProperties": false
 }
@@ -163,36 +102,44 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "URP Response",
-  "description": "Decision on a claim, optionally including a counter-stake or proof.",
+  "description": "Decision on a claim, optionally including a counter‑stake or proof.",
   "type": "object",
   "required": ["claim_id", "decision"],
   "properties": {
-    "claim_id": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Identifier of the claim being responded to."
-    },
-    "decision": {
-      "type": "string",
-      "enum": ["accept", "reject", "challenge"],
-      "description": "Decision on the claim."
-    },
+    "claim_id": { "type": "string", "format": "uuid", "description": "Identifier of the claim being responded to." },
+    "decision": { "type": "string", "enum": ["accept", "reject", "challenge"], "description": "Decision on the claim." },
     "proof_ref": {
-      "anyOf": [
-        { "$ref": "#ProofReference" },
-        { "type": "null" }
-      ],
+      "anyOf": [ { "$ref": "#/$defs/ProofReference" }, { "type": "null" } ],
       "description": "Optional proof supporting the decision."
     },
     "stake": {
-      "anyOf": [
-        { "$ref": "#Stake" },
-        { "type": "null" }
-      ],
+      "anyOf": [ { "$ref": "#/$defs/Stake" }, { "type": "null" } ],
       "description": "Optional stake for challenges."
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "ProofReference": {
+      "type": "object",
+      "required": ["hash", "location", "summary"],
+      "properties": {
+        "hash": { "type": "string" },
+        "location": { "type": "string", "format": "uri" },
+        "summary": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "Stake": {
+      "type": "object",
+      "required": ["amount", "currency", "refundable"],
+      "properties": {
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3,5}$" },
+        "refundable": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
 }
 ```
 
@@ -220,3 +167,4 @@
 - On‑chain vs off‑chain channels  
 - Currency units and decimals  
 - Incentive/dispute resolution model
+````
