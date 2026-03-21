@@ -24,6 +24,7 @@ Field	Type	Description
 hash	string	Cryptographic hash of the proof data.
 location	string	URI where the proof can be retrieved (e.g. IPFS, HTTP).
 summary	string	Optional short description of the proof contents.
+confidence_score	float	A value between 0.0 and 1.0 representing the submitting agent's confidence in the evidence, where 1.0 is certain and 0.0 is speculative. Optional.
 
 Stake
 A Stake signals the sender’s confidence and funds the verification process. It includes:
@@ -71,3 +72,25 @@ Governance and extension mechanisms.
 Privacy and encryption features.
 
 These topics will be addressed in subsequent versions of the specification.
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| CLAIM_MALFORMED | The claim object is missing required fields or contains invalid types. |
+| PROOF_MISSING | The claim references a proof that cannot be retrieved. |
+| PROOF_INVALID | The proof hash does not match the retrieved content. |
+| STAKE_INSUFFICIENT | The stake amount is below the minimum required by the receiving agent. |
+| STAKE_CURRENCY_UNKNOWN | The currency code in the stake is not recognised. |
+| UNSUPPORTED_VERSION | The protocol_version in the message envelope is not supported by the receiving agent. |
+| AGENT_UNKNOWN | The sender identifier cannot be resolved. |
+| CLAIM_DUPLICATE | A claim with the same id has already been submitted. |
+| DECISION_INVALID | The response decision value is not one of the accepted enum values. |
+| VERIFICATION_TIMEOUT | The verifier did not return a decision within the allowed window. |
+| SETTLEMENT_FAILED | The settlement transaction could not be completed. |
+| CHALLENGE_EXPIRED | The challenge window closed before a response was submitted. |
+| UNSUPPORTED_CLAIM_TYPE | The claim type is not handled by the receiving agent. |
+
+## Signing Model (stub)
+
+URP messages SHOULD be signed by the sending agent to ensure authenticity and tamper-evidence. The intended signing model is JSON Web Signatures (JWS) as defined in RFC 7515. Each URPMessage envelope should carry an optional signature field containing a detached JWS signature over the canonical JSON serialisation of the payload. Key management, DID integration, and signature verification workflows are deferred to v0.3. Implementations that do not yet support signing MUST NOT silently accept unsigned messages in security-sensitive contexts.

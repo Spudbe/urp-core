@@ -30,7 +30,8 @@
       "properties": {
         "hash": { "type": "string", "description": "Cryptographic hash of the proof data (e.g. SHA‑256)." },
         "location": { "type": "string", "format": "uri", "description": "URI where the proof can be retrieved (e.g. IPFS link)." },
-        "summary": { "type": "string", "description": "Short human‑readable summary of the proof contents." }
+        "summary": { "type": "string", "description": "Short human‑readable summary of the proof contents." },
+        "confidence_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Submitting agent's confidence in the evidence (0.0 = speculative, 1.0 = certain). Optional." }
       },
       "additionalProperties": false
     },
@@ -73,7 +74,8 @@
   "properties": {
     "hash": { "type": "string", "description": "Cryptographic hash of the proof data (e.g. SHA‑256)." },
     "location": { "type": "string", "format": "uri", "description": "URI where the proof can be retrieved (e.g. IPFS link)." },
-    "summary": { "type": "string", "description": "Short human‑readable summary of the proof contents." }
+    "summary": { "type": "string", "description": "Short human‑readable summary of the proof contents." },
+    "confidence_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Submitting agent's confidence in the evidence (0.0 = speculative, 1.0 = certain). Optional." }
   },
   "additionalProperties": false
 }
@@ -125,7 +127,8 @@
       "properties": {
         "hash": { "type": "string" },
         "location": { "type": "string", "format": "uri" },
-        "summary": { "type": "string" }
+        "summary": { "type": "string" },
+        "confidence_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Submitting agent's confidence in the evidence (0.0 = speculative, 1.0 = certain). Optional." }
       },
       "additionalProperties": false
     },
@@ -143,28 +146,7 @@
 }
 ```
 
-## 3. Proof Format
-- Data model (e.g. JSON‑LD, Merkle proofs)  
-- Tamper‑evident requirements
+## 3. Out of Scope for v0.2
 
-## 4. Transport Protocol
-- Options: HTTP/JSON‑RPC, gRPC, Pub/Sub  
-- Message signing & integrity
-
-## 5. Identity & Reputation
-- DID integration or on‑chain registry  
-- Reputation scoring model
-
-## 6. Privacy & Encryption
-- Payload encryption  
-- Selective disclosure
-
-## 7. Governance & Versioning
-- How to propose and accept spec changes  
-- Version numbering
-
-## 8. Microtransaction Layer
-- On‑chain vs off‑chain channels  
-- Currency units and decimals  
-- Incentive/dispute resolution model
+The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.
 ````
