@@ -15,13 +15,16 @@ async def networked_simulation():
     challenger = ChallengerAgent("Challenger")
     verifier = VerifierAgent("Verifier")
 
-    # Start each agent’s WS server
+    # Start each agent's WS server
     srv1 = AgentServer(researcher, port=8001)
     srv2 = AgentServer(challenger, port=8002)
     srv3 = AgentServer(verifier, port=8003)
 
     # Run all servers concurrently
     await asyncio.gather(srv1.start(), srv2.start(), srv3.start())
+
+    # Allow servers time to bind
+    await asyncio.sleep(0.5)
 
     # Set up ledger
     ledger = Ledger()
@@ -31,12 +34,12 @@ async def networked_simulation():
     # Researcher sends a claim to Challenger
     claim = researcher.create_claim("What is the boiling point of water at sea level?")
     msg = URPMessage("claim", claim, researcher.name)
-    client = AgentClient(researcher.name, "ws://localhost:8002")
-    resp = await client.send(msg)
+    async with AgentClient(researcher.name, "ws://localhost:8002") as client:
+        resp = await client.send(msg)
 
     # Challenger processes and forwards to Verifier
-    client_v = AgentClient(challenger.name, "ws://localhost:8003")
-    resp2 = await client_v.send(resp)
+    async with AgentClient(challenger.name, "ws://localhost:8003") as client_v:
+        resp2 = await client_v.send(resp)
 
     # Display the final response
     print("Final decision payload:", resp2.payload)

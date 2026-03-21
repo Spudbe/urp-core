@@ -19,7 +19,6 @@ from __future__ import annotations
 import uuid
 from abc import ABC, abstractmethod
 from typing import Optional
-import random
 
 from .core import Claim, ClaimType, Response, Decision, ProofReference, Stake
 from .knowledge_base import get_fact

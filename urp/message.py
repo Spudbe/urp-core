@@ -3,29 +3,34 @@ import uuid
 from datetime import datetime
 from dataclasses import asdict
 
+PROTOCOL_VERSION = "0.2.0"
+
 class URPMessage:
     """
     A wrapper for URP objects when sending over the wire.
     Carries metadata + a JSON‐serializable payload.
     """
-    def __init__(self, msg_type: str, payload, sender: str, 
-                 message_id: str = None, timestamp: str = None):
+    def __init__(self, msg_type: str, payload, sender: str,
+                 message_id: str = None, timestamp: str = None,
+                 protocol_version: str = PROTOCOL_VERSION):
         self.message_id = message_id or str(uuid.uuid4())
         # RFC3339 / ISO8601 UTC time
         self.timestamp = timestamp or datetime.utcnow().isoformat() + "Z"
         self.sender = sender
         self.type = msg_type
         self.payload = payload  # must have to_dict()
+        self.protocol_version = protocol_version
 
     def to_json(self, compact: bool = True) -> str:
         # Build the wrapper dict
         wrapper = {
+            "protocol_version": self.protocol_version,
             "message_id": self.message_id,
             "timestamp": self.timestamp,
             "sender": self.sender,
             "type": self.type,
-            # use the object’s to_dict() if available, else fallback to dataclasses.asdict
-            "payload": self.payload.to_dict() if hasattr(self.payload, "to_dict") 
+            # use the object's to_dict() if available, else fallback to dataclasses.asdict
+            "payload": self.payload.to_dict() if hasattr(self.payload, "to_dict")
                        else asdict(self.payload),
         }
         if compact:
@@ -48,4 +53,5 @@ class URPMessage:
             sender=data["sender"],
             message_id=data["message_id"],
             timestamp=data["timestamp"],
+            protocol_version=data.get("protocol_version", PROTOCOL_VERSION),
         )
