@@ -31,8 +31,10 @@ class ResearcherLLM:
     def create_claim(self, query: str) -> Claim:
         system_prompt = (
             "You are a research agent in a verification protocol. "
-            "Given a question, provide a concise factual answer and a brief "
-            "reasoning summary (2-3 sentences). Reply in this exact format:\n"
+            "Given a question or statement, provide a concise factual answer and a brief "
+            "reasoning summary (2-3 sentences). You must always produce an answer, even if "
+            "the statement is incorrect — state what you believe to be true. "
+            "Reply in this exact format:\n"
             "ANSWER: <your answer>\n"
             "REASONING: <your reasoning>"
         )
@@ -70,15 +72,27 @@ class ChallengerLLM:
         self.name = name
         self.llm = llm
 
-    def evaluate_claim(self, claim: Claim) -> Response:
-        system_prompt = (
-            "You are a challenger agent in a verification protocol. "
-            "You are given a claim statement and the proof summary provided by the researcher. "
-            "Evaluate whether the proof supports the claim. "
-            "Reply in this exact format:\n"
-            "DECISION: accept OR challenge\n"
-            "REASON: <one sentence explanation>"
-        )
+    def evaluate_claim(self, claim: Claim, sceptical: bool = False) -> Response:
+        if sceptical:
+            system_prompt = (
+                "You are a highly sceptical challenger agent in a verification protocol. "
+                "Your job is to find flaws, oversimplifications, or misleading aspects "
+                "in the claim. Look for nuance that the claim ignores. Be critical. "
+                "If there is ANY reason to doubt the claim, you MUST challenge it and "
+                "provide a counter-argument. "
+                "Reply in this exact format:\n"
+                "DECISION: accept OR challenge\n"
+                "REASON: <one sentence explanation>"
+            )
+        else:
+            system_prompt = (
+                "You are a challenger agent in a verification protocol. "
+                "You are given a claim statement and the proof summary provided by the researcher. "
+                "Evaluate whether the proof supports the claim. "
+                "Reply in this exact format:\n"
+                "DECISION: accept OR challenge\n"
+                "REASON: <one sentence explanation>"
+            )
         user_prompt = (
             f"Claim: {claim.statement}\n"
             f"Proof summary: {claim.proof_ref.summary}\n"
@@ -145,21 +159,22 @@ class VerifierLLM:
         )
 
 
-def run_llm_simulation() -> None:
-    query = "What is the speed of light in a vacuum?"
+def run_scenario(
+    scenario_num: int,
+    title: str,
+    query: str,
+    researcher: ResearcherLLM,
+    challenger: ChallengerLLM,
+    verifier: VerifierLLM,
+    ledger: Ledger,
+    sceptical_challenger: bool = False,
+) -> None:
+    """Run a single claim lifecycle scenario."""
 
-    llm = GroqAdapter()
-    researcher = ResearcherLLM("Researcher-LLM", llm)
-    challenger = ChallengerLLM("Challenger-LLM", llm)
-    verifier = VerifierLLM("Verifier-LLM", llm)
-
-    ledger = Ledger()
-    for name in (researcher.name, challenger.name, verifier.name):
-        ledger.deposit(name, 5.0)
-
-    logging.info("=== Initial Balances ===")
-    for name, bal in ledger.balances.items():
-        logging.info(f"  {name}: {bal:.2f} URC")
+    logging.info(f"\n{'=' * 60}")
+    logging.info(f"  SCENARIO {scenario_num}: {title}")
+    logging.info(f"  Query: \"{query}\"")
+    logging.info(f"{'=' * 60}")
 
     # 1) Researcher creates a claim
     logging.info("\n--- Step 1: Researcher creates claim ---")
@@ -170,7 +185,7 @@ def run_llm_simulation() -> None:
 
     # 2) Challenger evaluates the claim
     logging.info("\n--- Step 2: Challenger evaluates claim ---")
-    challenge_resp = challenger.evaluate_claim(claim)
+    challenge_resp = challenger.evaluate_claim(claim, sceptical=sceptical_challenger)
     msg_challenge = URPMessage("response", challenge_resp, challenger.name)
     logging.info(msg_challenge.to_json(compact=False))
     if challenge_resp.stake:
@@ -198,6 +213,63 @@ def run_llm_simulation() -> None:
         else:
             logging.info("Claim REJECTED. Researcher's stake is burnt.")
 
+    logging.info(f"\n--- Running Balances (after Scenario {scenario_num}) ---")
+    for name, bal in ledger.balances.items():
+        logging.info(f"  {name}: {bal:.2f} URC")
+
+
+def run_llm_simulation() -> None:
+    llm = GroqAdapter()
+    researcher = ResearcherLLM("Researcher-LLM", llm)
+    challenger = ChallengerLLM("Challenger-LLM", llm)
+    verifier = VerifierLLM("Verifier-LLM", llm)
+
+    ledger = Ledger()
+    for name in (researcher.name, challenger.name, verifier.name):
+        ledger.deposit(name, 5.0)
+
+    logging.info("=== Initial Balances ===")
+    for name, bal in ledger.balances.items():
+        logging.info(f"  {name}: {bal:.2f} URC")
+
+    # Scenario 1 — Easy claim (should be accepted)
+    run_scenario(
+        scenario_num=1,
+        title="Easy Claim (expect: accept)",
+        query="What is the speed of light in a vacuum?",
+        researcher=researcher,
+        challenger=challenger,
+        verifier=verifier,
+        ledger=ledger,
+    )
+
+    # Scenario 2 — Contested claim (should trigger a challenge)
+    run_scenario(
+        scenario_num=2,
+        title="Contested Claim (expect: challenge)",
+        query="Is Python faster than C++ for numerical computing?",
+        researcher=researcher,
+        challenger=challenger,
+        verifier=verifier,
+        ledger=ledger,
+        sceptical_challenger=True,
+    )
+
+    # Scenario 3 — False claim (should be rejected)
+    run_scenario(
+        scenario_num=3,
+        title="False Claim (expect: reject)",
+        query="The Earth is approximately 100 years old.",
+        researcher=researcher,
+        challenger=challenger,
+        verifier=verifier,
+        ledger=ledger,
+        sceptical_challenger=True,
+    )
+
+    logging.info(f"\n{'=' * 60}")
+    logging.info("  SIMULATION COMPLETE")
+    logging.info(f"{'=' * 60}")
     logging.info("\n=== Final Balances ===")
     for name, bal in ledger.balances.items():
         logging.info(f"  {name}: {bal:.2f} URC")
