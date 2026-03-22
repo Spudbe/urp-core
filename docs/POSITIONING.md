@@ -33,4 +33,4 @@ URP is published as a protocol draft under the Business Source License 1.1 (BUSL
 ## Contact
 
 - **Spec feedback:** GitHub Issues on the [urp-core repository](https://github.com/Spudbe/urp-core/issues)
-- **Commercial licensing:** licensing@urp-protocol.org (placeholder — update when domain is active)
+- **Commercial licensing:** GitHub Issues at https://github.com/Spudbe/urp-core/issues
