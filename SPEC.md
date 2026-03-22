@@ -82,23 +82,73 @@ The following areas are recognised as necessary for a complete protocol but are 
 
 ## Evidence Types
 
-URP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. Claims backed by a ToolReceipt are verifiable. Claims backed only by a ProofReference are assertions. URP treats these differently in the challenge/verify flow.
+URP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. Claims backed by ToolReceipts are verifiable. Claims backed only by a ProofReference are assertions. URP treats these differently in the challenge/verify flow.
+
+A Claim carries an `evidence` list of zero or more ToolReceipt objects. When present, challengers can verify the claim by replaying tool calls and comparing output hashes, rather than trusting the claiming agent.
+
+### Classification Enums
+
+**EvidenceStrength** — How strongly a ToolReceipt is authenticated.
+
+| Value | Description |
+|-------|-------------|
+| unsigned | No cryptographic signature attached. |
+| caller_signed | Signed by the agent that invoked the tool. |
+| provider_signed | Signed by the tool provider. |
+| dual_signed | Signed by both caller and provider. |
+
+**NondeterminismClass** — How reproducible a tool call's output is.
+
+| Value | Description |
+|-------|-------------|
+| deterministic | Same inputs always produce same output. |
+| time_dependent | Output varies with wall-clock time. |
+| randomized | Output depends on random seed or sampling. |
+| model_based | Output depends on a model (e.g. LLM) that may change between invocations. |
+| environment_dependent | Output depends on external state (e.g. database, network). |
+
+**SideEffectClass** — What external effects a tool call has.
+
+| Value | Description |
+|-------|-------------|
+| none | No external effects. |
+| read_only | Reads external state but does not modify it. |
+| external_write | Writes to an external system. |
+| irreversible | Produces effects that cannot be undone. |
+
+**ReplayClass** — How verifiable a tool call is by replay.
+
+| Value | Description |
+|-------|-------------|
+| none | Cannot be replayed or verified. |
+| weak | Can be replayed but output may differ. |
+| stateful | Replay requires matching external state. |
+| strong | Replay produces identical output. |
+| witness_only | Verified by a third-party witness, not by replay. |
 
 ### ToolReceipt
 
-A ToolReceipt is the first concrete EvidenceType. It records a tool call that a challenger can verify by replay or signature. A ToolReceipt includes:
+A ToolReceipt is the first concrete EvidenceType. It records a tool call with enough metadata for a challenger to verify by replay or signature.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| tool_name | string | The name of the tool that was called. |
-| tool_version | string | The version string of the tool; "unknown" if not available. |
-| inputs | object | The inputs passed to the tool, JSON-serialisable. |
-| output | object | The output returned by the tool, JSON-serialisable. |
-| timestamp | string | ISO 8601 UTC timestamp of when the tool was called. |
+| receipt_id | string | UUID identifying this receipt, auto-assigned if not provided. |
+| tool_name | string | Name of the tool that was called. |
+| tool_version | string | Version string of the tool; "unknown" if not available. |
+| provider_name | string | Human-readable name of the tool provider. |
+| provider_id | string | Identifier for the tool provider. |
+| protocol_family | string | Protocol used to invoke the tool (default "local_python"). |
+| started_at | string | ISO 8601 UTC timestamp of when the tool was called. |
+| status | string | Outcome of the tool call (default "succeeded"). |
+| side_effect_class | SideEffectClass | What external effects the tool call has. |
+| nondeterminism_class | NondeterminismClass | How reproducible the output is. |
+| input_inline | object | The inputs passed to the tool, JSON-serialisable. |
+| input_sha256 | string | SHA-256 hash of canonical JSON of inputs, prefixed with "sha256:". |
+| output_inline | object | The output returned by the tool, JSON-serialisable. |
+| output_sha256 | string | SHA-256 hash of canonical JSON of output, prefixed with "sha256:". |
+| replay_class | ReplayClass | How verifiable the call is by replay. |
+| evidence_strength | EvidenceStrength | How strongly the receipt is authenticated. |
 | signature | string or null | Optional JWS signature over the canonical receipt; null until signing is implemented. |
-| replay_hash | string | SHA-256 hash of (tool_name + tool_version + canonical JSON of inputs), enabling replay verification. |
-
-A ProofReference may carry an optional `evidence` field containing a ToolReceipt. When present, challengers can verify the claim by replaying the tool call and comparing the output hash, rather than trusting the claiming agent.
 
 ## Signing Model (stub)
 

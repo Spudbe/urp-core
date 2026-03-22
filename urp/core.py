@@ -3,7 +3,8 @@
 from __future__ import annotations
 import hashlib
 import json
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
@@ -22,47 +23,119 @@ class Decision(Enum):
     EXPIRED = "expired"
 
 
+class EvidenceStrength(Enum):
+    """How strongly a ToolReceipt is authenticated."""
+    UNSIGNED = "unsigned"
+    CALLER_SIGNED = "caller_signed"
+    PROVIDER_SIGNED = "provider_signed"
+    DUAL_SIGNED = "dual_signed"
+
+
+class NondeterminismClass(Enum):
+    """How reproducible a tool call's output is."""
+    DETERMINISTIC = "deterministic"
+    TIME_DEPENDENT = "time_dependent"
+    RANDOMIZED = "randomized"
+    MODEL_BASED = "model_based"
+    ENVIRONMENT_DEPENDENT = "environment_dependent"
+
+
+class SideEffectClass(Enum):
+    """What external effects a tool call has."""
+    NONE = "none"
+    READ_ONLY = "read_only"
+    EXTERNAL_WRITE = "external_write"
+    IRREVERSIBLE = "irreversible"
+
+
+class ReplayClass(Enum):
+    """How verifiable a tool call is by replay."""
+    NONE = "none"
+    WEAK = "weak"
+    STATEFUL = "stateful"
+    STRONG = "strong"
+    WITNESS_ONLY = "witness_only"
+
+
 @dataclass
 class ToolReceipt:
-    """A verifiable record of a tool call, suitable for replay verification.
+    """A verifiable record of a tool call with strength and replay classification.
 
     Attributes:
+        receipt_id: UUID identifying this receipt, auto-assigned if not provided.
         tool_name: Name of the tool that was called.
-        tool_version: Version string of the tool (use "unknown" if not available).
-        inputs: The inputs passed to the tool, must be JSON-serialisable.
-        output: The output returned by the tool, must be JSON-serialisable.
-        timestamp: ISO 8601 UTC timestamp of when the tool was called.
+        tool_version: Version string of the tool (default "unknown").
+        provider_name: Human-readable name of the tool provider.
+        provider_id: Identifier for the tool provider.
+        protocol_family: Protocol used to invoke the tool (default "local_python").
+        started_at: ISO 8601 UTC timestamp of when the tool was called.
+        status: Outcome of the tool call (default "succeeded").
+        side_effect_class: What external effects the tool call has.
+        nondeterminism_class: How reproducible the output is.
+        input_inline: The inputs passed to the tool, JSON-serialisable.
+        input_sha256: SHA-256 hash of canonical JSON of inputs.
+        output_inline: The output returned by the tool, JSON-serialisable.
+        output_sha256: SHA-256 hash of canonical JSON of output.
+        replay_class: How verifiable the call is by replay.
+        evidence_strength: How strongly the receipt is authenticated.
         signature: Optional JWS signature over the canonical receipt.
-        replay_hash: SHA-256 hash of (tool_name + tool_version + canonical JSON of inputs).
     """
+    receipt_id: str
     tool_name: str
-    tool_version: str
-    inputs: dict
-    output: dict
-    timestamp: str
+    provider_name: str
+    provider_id: str
+    input_inline: dict
+    output_inline: dict
+    started_at: str
+    tool_version: str = "unknown"
+    protocol_family: str = "local_python"
+    status: str = "succeeded"
+    side_effect_class: SideEffectClass = SideEffectClass.NONE
+    nondeterminism_class: NondeterminismClass = NondeterminismClass.DETERMINISTIC
+    input_sha256: str = ""
+    output_sha256: str = ""
+    replay_class: ReplayClass = ReplayClass.STRONG
+    evidence_strength: EvidenceStrength = EvidenceStrength.UNSIGNED
     signature: Optional[str] = None
-    replay_hash: str = ""
 
     def __post_init__(self) -> None:
-        if not self.replay_hash:
-            self.replay_hash = ToolReceipt.make_replay_hash(
-                self.tool_name, self.tool_version, self.inputs
-            )
+        if not self.receipt_id:
+            self.receipt_id = str(uuid.uuid4())
+        if not self.input_sha256:
+            self.input_sha256 = ToolReceipt.make_input_hash(self.input_inline)
+        if not self.output_sha256:
+            self.output_sha256 = ToolReceipt.make_output_hash(self.output_inline)
 
     @classmethod
-    def make_replay_hash(cls, tool_name: str, tool_version: str, inputs: dict) -> str:
-        """Compute a deterministic SHA-256 hash for replay verification."""
-        canonical = tool_name + tool_version + json.dumps(inputs, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(canonical.encode()).hexdigest()
+    def make_input_hash(cls, inputs: dict) -> str:
+        """Return 'sha256:<hex>' hash of canonical JSON of inputs."""
+        canonical = json.dumps(inputs, sort_keys=True, separators=(",", ":"))
+        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+
+    @classmethod
+    def make_output_hash(cls, output: dict) -> str:
+        """Return 'sha256:<hex>' hash of canonical JSON of output."""
+        canonical = json.dumps(output, sort_keys=True, separators=(",", ":"))
+        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
     def to_dict(self) -> dict:
         d = {
+            "receipt_id": self.receipt_id,
             "tool_name": self.tool_name,
             "tool_version": self.tool_version,
-            "inputs": self.inputs,
-            "output": self.output,
-            "timestamp": self.timestamp,
-            "replay_hash": self.replay_hash,
+            "provider_name": self.provider_name,
+            "provider_id": self.provider_id,
+            "protocol_family": self.protocol_family,
+            "started_at": self.started_at,
+            "status": self.status,
+            "side_effect_class": self.side_effect_class.value,
+            "nondeterminism_class": self.nondeterminism_class.value,
+            "input_inline": self.input_inline,
+            "input_sha256": self.input_sha256,
+            "output_inline": self.output_inline,
+            "output_sha256": self.output_sha256,
+            "replay_class": self.replay_class.value,
+            "evidence_strength": self.evidence_strength.value,
         }
         if self.signature is not None:
             d["signature"] = self.signature
@@ -71,13 +144,23 @@ class ToolReceipt:
     @classmethod
     def from_dict(cls, data: dict) -> ToolReceipt:
         return cls(
+            receipt_id=data.get("receipt_id", ""),
             tool_name=data["tool_name"],
-            tool_version=data["tool_version"],
-            inputs=data["inputs"],
-            output=data["output"],
-            timestamp=data["timestamp"],
+            tool_version=data.get("tool_version", "unknown"),
+            provider_name=data["provider_name"],
+            provider_id=data["provider_id"],
+            protocol_family=data.get("protocol_family", "local_python"),
+            started_at=data["started_at"],
+            status=data.get("status", "succeeded"),
+            side_effect_class=SideEffectClass(data.get("side_effect_class", "none")),
+            nondeterminism_class=NondeterminismClass(data.get("nondeterminism_class", "deterministic")),
+            input_inline=data["input_inline"],
+            input_sha256=data.get("input_sha256", ""),
+            output_inline=data["output_inline"],
+            output_sha256=data.get("output_sha256", ""),
+            replay_class=ReplayClass(data.get("replay_class", "strong")),
+            evidence_strength=EvidenceStrength(data.get("evidence_strength", "unsigned")),
             signature=data.get("signature"),
-            replay_hash=data.get("replay_hash", ""),
         )
 
 
@@ -86,15 +169,14 @@ class ProofReference:
     """
     A pointer to an external proof artifact.
     Attributes:
-        hash: A content hash of the proof (e.g. SHA‑256).
+        hash: A content hash of the proof (e.g. SHA-256).
         location: A URI where the proof is stored (e.g. IPFS link).
-        summary: A human‑readable summary of the proof.
+        summary: A human-readable summary of the proof.
     """
     hash: str
     location: str
     summary: str
     confidence_score: Optional[float] = None
-    evidence: Optional[ToolReceipt] = None
 
     def to_dict(self) -> dict:
         d = {
@@ -104,8 +186,6 @@ class ProofReference:
         }
         if self.confidence_score is not None:
             d["confidence_score"] = self.confidence_score
-        if self.evidence is not None:
-            d["evidence"] = self.evidence.to_dict()
         return d
 
     @classmethod
@@ -115,7 +195,6 @@ class ProofReference:
             location=data["location"],
             summary=data["summary"],
             confidence_score=data.get("confidence_score"),
-            evidence=ToolReceipt.from_dict(data["evidence"]) if data.get("evidence") else None,
         )
 
 
@@ -158,12 +237,14 @@ class Claim:
         type: One of ClaimType.
         proof_ref: A ProofReference pointing to supporting evidence.
         stake: A Stake used to back the claim.
+        evidence: A list of ToolReceipt objects backing this claim.
     """
     id: str
     statement: str
     type: ClaimType
     proof_ref: ProofReference
     stake: Stake
+    evidence: list[ToolReceipt] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -172,6 +253,7 @@ class Claim:
             "type": self.type.value,
             "proof_ref": self.proof_ref.to_dict(),
             "stake": self.stake.to_dict(),
+            "evidence": [e.to_dict() for e in self.evidence],
         }
 
     @classmethod
@@ -182,6 +264,7 @@ class Claim:
             type=ClaimType(data["type"]),
             proof_ref=ProofReference.from_dict(data["proof_ref"]),
             stake=Stake.from_dict(data["stake"]),
+            evidence=[ToolReceipt.from_dict(e) for e in data.get("evidence", [])],
         )
 
 
@@ -193,7 +276,7 @@ class Response:
         claim_id: The UUID of the Claim being responded to.
         decision: One of Decision.{ACCEPT, CHALLENGE, REJECT}.
         proof_ref: Optional ProofReference for the response.
-        stake: Optional Stake for a challenge or counter‑stake.
+        stake: Optional Stake for a challenge or counter-stake.
     """
     claim_id: str
     decision: Decision
