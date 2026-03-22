@@ -17,6 +17,7 @@ class Decision(Enum):
     ACCEPT = "accept"
     CHALLENGE = "challenge"
     REJECT = "reject"
+    EXPIRED = "expired"
 
 
 @dataclass
@@ -31,13 +32,17 @@ class ProofReference:
     hash: str
     location: str
     summary: str
+    confidence_score: Optional[float] = None
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "hash": self.hash,
             "location": self.location,
             "summary": self.summary,
         }
+        if self.confidence_score is not None:
+            d["confidence_score"] = self.confidence_score
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> ProofReference:
@@ -45,6 +50,7 @@ class ProofReference:
             hash=data["hash"],
             location=data["location"],
             summary=data["summary"],
+            confidence_score=data.get("confidence_score"),
         )
 
 

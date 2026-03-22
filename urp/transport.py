@@ -48,9 +48,27 @@ class AgentClient:
     def __init__(self, sender_name: str, target_uri: str):
         self.sender = sender_name
         self.target_uri = target_uri
+        self._ws = None
+
+    async def __aenter__(self):
+        self._ws = await websockets.connect(self.target_uri)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._ws is not None:
+            await self._ws.close()
+            self._ws = None
+        return False
 
     async def send(self, urp_msg: URPMessage) -> URPMessage:
-        async with websockets.connect(self.target_uri) as ws:
+        if self._ws is not None:
+            ws = self._ws
+        else:
+            ws = await websockets.connect(self.target_uri)
+        try:
             await ws.send(urp_msg.to_json(compact=True))
             raw = await ws.recv()
             return URPMessage.from_json(raw, payload_cls=Response)
+        finally:
+            if self._ws is None:
+                await ws.close()
