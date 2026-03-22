@@ -548,3 +548,67 @@ class TestBatchVerification:
         assert result.all_verified is True
         assert len(result.results) == 3
         assert "3" in result.summary
+
+
+class TestStructuredClaimAwareVerification:
+    """verify_claim() with structured_claim proposition matching."""
+
+    _SC_MATCHING = {
+        "sc_version": "0.5",
+        "kind": "tool_output",
+        "proposition": {
+            "type": "tool_output_equals",
+            "tool_name": "compute_fibonacci",
+            "input": {"n": 10},
+            "expected_output": {"input": 10, "result": 55, "algorithm": "iterative"},
+            "input_match": "exact",
+            "output_match": "exact",
+        },
+    }
+
+    _SC_MISMATCHING = {
+        "sc_version": "0.5",
+        "kind": "tool_output",
+        "proposition": {
+            "type": "tool_output_equals",
+            "tool_name": "compute_fibonacci",
+            "input": {"n": 10},
+            "expected_output": {"input": 10, "result": 99, "algorithm": "iterative"},
+            "input_match": "exact",
+            "output_match": "exact",
+        },
+    }
+
+    def test_verify_claim_without_structured_claim(self):
+        v = _make_verifier()
+        r = _make_receipt()
+        claim = _make_claim_with_evidence([r])
+        result = v.verify_claim(claim)
+        assert result.claim_match_status is None
+        assert result.claim_match_summary is None
+
+    def test_verify_claim_with_matching_structured_claim(self):
+        v = _make_verifier()
+        r = _make_receipt()
+        claim = _make_claim_with_evidence([r])
+        claim.structured_claim = self._SC_MATCHING
+        result = v.verify_claim(claim)
+        assert result.claim_match_status == "true"
+
+    def test_verify_claim_with_mismatching_structured_claim(self):
+        v = _make_verifier()
+        r = _make_receipt()
+        claim = _make_claim_with_evidence([r])
+        claim.structured_claim = self._SC_MISMATCHING
+        result = v.verify_claim(claim)
+        assert result.claim_match_status == "false"
+
+    def test_verify_claim_to_dict_includes_match(self):
+        v = _make_verifier()
+        r = _make_receipt()
+        claim = _make_claim_with_evidence([r])
+        claim.structured_claim = self._SC_MATCHING
+        result = v.verify_claim(claim)
+        d = result.to_dict()
+        assert "claim_match_status" in d
+        assert "claim_match_summary" in d

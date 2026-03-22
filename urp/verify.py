@@ -21,6 +21,8 @@ from enum import Enum
 from typing import Callable, Optional
 
 from urp.core import NondeterminismClass, ReplayClass, SideEffectClass, ToolReceipt
+from urp.structured_claim import StructuredClaim
+from urp.claim_verifier import match_claim as _match_structured_claim, PropStatus
 
 
 class VerificationStatus(Enum):
@@ -317,11 +319,26 @@ class ToolReceiptVerifier:
             failed = total - verified_count
             summary = f"{verified_count}/{total} verified, {failed} failed."
 
+        # If claim has a structured_claim, also check proposition-to-evidence alignment
+        claim_match_status = None
+        claim_match_summary = None
+        if hasattr(claim, 'structured_claim') and claim.structured_claim is not None:
+            try:
+                sc = StructuredClaim.from_dict(claim.structured_claim)
+                match_result = _match_structured_claim(sc, claim.evidence)
+                claim_match_status = match_result.overall_status.value
+                claim_match_summary = match_result.summary
+            except Exception:
+                claim_match_status = "error"
+                claim_match_summary = "Failed to parse or match structured claim."
+
         return BatchVerificationResult(
             claim_id=claim.id,
             results=results,
             all_verified=all_verified,
             summary=summary,
+            claim_match_status=claim_match_status,
+            claim_match_summary=claim_match_summary,
         )
 
 
@@ -334,17 +351,26 @@ class BatchVerificationResult:
         results: Individual VerificationResult for each receipt.
         all_verified: True only if every receipt has VERIFIED_EXACT status.
         summary: Human-readable summary of the batch outcome.
+        claim_match_status: "true", "false", "unknown", "error", or None if no structured_claim.
+        claim_match_summary: Human-readable summary of structured claim matching.
     """
     claim_id: str
     results: list[VerificationResult]
     all_verified: bool
     summary: str
+    claim_match_status: Optional[str] = None
+    claim_match_summary: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Serialise to a plain dict."""
-        return {
+        d = {
             "claim_id": self.claim_id,
             "results": [r.to_dict() for r in self.results],
             "all_verified": self.all_verified,
             "summary": self.summary,
         }
+        if self.claim_match_status is not None:
+            d["claim_match_status"] = self.claim_match_status
+        if self.claim_match_summary is not None:
+            d["claim_match_summary"] = self.claim_match_summary
+        return d
