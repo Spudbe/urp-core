@@ -49,7 +49,12 @@ The current ledger does not track: stake escrow (stakes are managed by simulatio
 
 `urp/transport.py` implements a WebSocket-based transport using the `websockets` library. `AgentServer` wraps an Agent instance and listens for incoming JSON messages on a configurable port. When it receives a message with `type: "claim"`, it deserialises the payload, calls `evaluate_claim()`, and sends back a Response envelope. `AgentClient` opens a connection to a target URI, sends a single URPMessage, and waits for one reply.
 
-The transport layer is the most likely candidate for replacement. An MCP transport adapter would replace WebSocket connections with MCP tool calls, allowing URP claims to flow through existing MCP infrastructure. The agent and message layers would not change.
+The transport layer is the most likely candidate for replacement. Two adapter paths are described in SPEC.md:
+
+- **MCP transport adapter** — wraps URP operations as MCP tool calls (urp_submit_claim, urp_challenge_claim, urp_verify_claim, urp_settle_claim, urp_get_capability). Any MCP-connected agent can participate in the URP claim lifecycle without a direct WebSocket connection.
+- **A2A transport adapter** — maps URP claims to A2A tasks and responses to task artifacts. A2A's signed agent cards can carry AgentCapability declarations for capability discovery before claim submission.
+
+Both adapters are spec-only and not yet implemented. The agent and message layers would not change regardless of which transport is used.
 
 ## What URP Does Not Cover
 

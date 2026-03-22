@@ -166,3 +166,31 @@ A ToolReceipt is the first concrete EvidenceType. It records a tool call with en
 ## Signing Model (stub)
 
 URP messages SHOULD be signed by the sending agent to ensure authenticity and tamper-evidence. The intended signing model is JSON Web Signatures (JWS) as defined in RFC 7515. Each URPMessage envelope should carry an optional signature field containing a detached JWS signature over the canonical JSON serialisation of the payload. Key management, DID integration, and signature verification workflows are deferred to v0.3. Implementations that do not yet support signing MUST NOT silently accept unsigned messages in security-sensitive contexts.
+
+## Transport Adapters
+
+URP is transport-agnostic. The reference implementation uses WebSockets. Production deployments should use existing agent communication protocols as the transport layer rather than building new transport infrastructure.
+
+### MCP Transport Adapter (spec-only, not yet implemented)
+
+URP messages can be carried over the Model Context Protocol (MCP) by wrapping them as MCP tool calls. This allows URP claim accountability to be added to any MCP-connected agent workflow without a separate transport layer.
+
+The mapping is:
+
+| URP operation | MCP equivalent |
+|---------------|----------------|
+| Submit claim | Call tool: urp_submit_claim, arguments: {claim: ClaimMessage} |
+| Challenge claim | Call tool: urp_challenge_claim, arguments: {claim_id: str, response: ResponseMessage} |
+| Verify claim | Call tool: urp_verify_claim, arguments: {claim_id: str, response: ResponseMessage} |
+| Settle claim | Call tool: urp_settle_claim, arguments: {settlement: SettlementMessage} |
+| Get capability | Call tool: urp_get_capability, returns: AgentCapability |
+
+An MCP server implementing URP would expose these five tools. Any MCP-connected agent can then participate in the URP claim lifecycle without a direct WebSocket connection.
+
+This adapter is not yet implemented. It is described here to establish the intended integration path and to invite implementation contributions. See [ROADMAP.md](ROADMAP.md) for planned work.
+
+### A2A Transport Adapter (spec-only, not yet implemented)
+
+URP messages can also be carried over the Agent-to-Agent Protocol (A2A) as task artifacts. A URP claim becomes an A2A task; the response and settlement become task artifacts returned by the delegated agent. A2A's signed agent cards can carry AgentCapability declarations, enabling capability discovery before claim submission.
+
+This adapter is not yet implemented.
