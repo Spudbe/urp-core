@@ -8,13 +8,14 @@ This gap matters in enterprise and regulated environments. The EU AI Act require
 
 ## Where URP Sits
 
-Other initiatives touch adjacent parts of the problem. The IETF Agentic Integrity Verification Standard (AIVS) describes a portable, self-verifying archive format for AI session logs — a session-level provenance mechanism rather than a claim-level one. Attestix provides DID-based identity, agent cards, delegation, and EU AI Act compliance tooling. A2A added signed agent cards in v0.3, enabling agents to discover each other and authenticate capabilities via JSON Web Signatures. Payment rails like x402 are seeing adoption in agent marketplaces for per-use settlement. None of these provide a general claim-level verification protocol.
+Other initiatives touch adjacent parts of the problem. The IETF [Agentic Integrity Verification Standard (AIVS)](https://www.ietf.org/archive/id/draft-stone-aivs-00.html) describes a portable, self-verifying archive format for AI session logs — a session-level provenance mechanism rather than a claim-level one. Attestix provides DID-based identity, agent cards, delegation, and EU AI Act compliance tooling. A2A added signed agent cards in v0.3, enabling agents to discover each other and authenticate capabilities via JSON Web Signatures. Payment rails like x402 are seeing adoption in agent marketplaces for per-use settlement. None of these provide a general claim-level verification protocol.
 
 | Name | What it solves | What it does not solve |
 |------|---------------|----------------------|
 | MCP | Standardised tool invocation — lets an agent call external tools and receive structured results. | Does not verify whether the tool's output is correct, or let the caller challenge it. |
 | A2A | Agent discovery and task delegation — lets agents find each other and hand off work. Signed agent cards authenticate capabilities. | Does not attach proof or economic commitment to the results of delegated work. |
-| AIVS | Session-level provenance — hash-chained audit logs for complete AI sessions. | Session integrity, not claim-level accountability. No challenge/dispute mechanism. |
+| [AIVS](https://www.ietf.org/archive/id/draft-stone-aivs-00.html) | Session-level provenance — hash-chained audit logs for complete AI sessions. | Session integrity, not claim-level accountability. No challenge/dispute mechanism. |
+| [VCAP](https://datatracker.ietf.org/doc/draft-stone-vcap/) | Verified commerce — escrow, proof-of-delivery, and payment settlement between agents. | Transaction settlement, not general claim verification. Assumes work delivery, not arbitrary assertions. |
 | Attestix | DID-based agent identity, credentials, EU AI Act compliance workflows. | Identity attestation, not claim verification. No economic staking or challenge model. |
 | LangGraph / CrewAI | Agent orchestration — manages multi-step workflows and coordination. | Framework-specific. No wire protocol for cross-framework claim verification. |
 | URP | Claim accountability — structured claim submission with verifiable evidence, economic staking, challenge/response evaluation, and settlement. | Does not handle tool invocation, agent discovery, orchestration, identity, or transport. Designed to layer on top of protocols that do. |
