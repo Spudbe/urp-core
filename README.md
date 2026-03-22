@@ -121,6 +121,26 @@ python server.py
 
 Open [http://localhost:8000](http://localhost:8000) in your browser and click **Run Simulation**.
 
+## Deploy your own
+
+### Manual deploy on Railway
+
+1. Fork this repository.
+2. In Railway, create a new project and choose Deploy from GitHub repo.
+3. Select your fork of urp-core.
+4. Add the required environment variable: `GROQ_API_KEY`
+5. Deploy the service.
+6. After deploy succeeds, open Settings → Networking and generate a public domain.
+
+**Required environment variable:** `GROQ_API_KEY` is required for the LLM-backed simulation. Create a key at [console.groq.com/keys](https://console.groq.com/keys). If `GROQ_API_KEY` is missing, `/run-simulation` will return a streamed error event instead of crashing.
+
+**Local equivalent:**
+
+```bash
+export GROQ_API_KEY=your_key_here
+uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
 ## Repository Structure
 
 ```

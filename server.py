@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 from typing import Optional
 
 from fastapi import FastAPI, Query
@@ -23,6 +24,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.state.groq_api_key_available = False
+app.state.groq_api_key_error = None
+
+
+@app.on_event("startup")
+async def validate_runtime_config() -> None:
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    app.state.groq_api_key_available = bool(groq_api_key)
+    app.state.groq_api_key_error = None if groq_api_key else (
+        "GROQ_API_KEY is not set. Set it in Railway Variables or your local environment "
+        "before calling /run-simulation. Create a key at https://console.groq.com/keys."
+    )
 
 
 # ---------- SSE helpers ----------
@@ -126,6 +140,11 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
 
 
 async def _run_simulation(custom_claim: Optional[str] = None):
+    if not getattr(app.state, "groq_api_key_available", False):
+        yield _sse("error", {"code": "missing_groq_api_key", "message": app.state.groq_api_key_error})
+        yield _sse("complete", {"message": "Simulation aborted."})
+        return
+
     loop = asyncio.get_event_loop()
     llm = GroqAdapter()
 
