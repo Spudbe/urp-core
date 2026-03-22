@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from dataclasses import asdict
 
-PROTOCOL_VERSION = "0.2.0"
+PROTOCOL_VERSION = "0.3.0"
 
 class URPMessage:
     """

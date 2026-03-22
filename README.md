@@ -2,7 +2,7 @@
 
 A protocol for structured claim exchange, verification, and settlement between autonomous agents.
 
-> **Status: Protocol Draft v0.2 — not production code.**
+> **Status: Protocol v0.3.0 — not production code.**
 
 ## What URP Is
 
@@ -44,16 +44,16 @@ Challenger: 1.00 URC
 Verifier: 1.00 URC
 
 Sending CLAIM message (compact):
-{"protocol_version":"0.2.0","message_id":"...","timestamp":"...","sender":"Researcher","type":"claim","payload":{...}}
+{"protocol_version":"0.3.0","message_id":"...","timestamp":"...","sender":"Researcher","type":"claim","payload":{...}}
 
 Received CLAIM message (pretty):
 {
-  "protocol_version": "0.2.0",
+  "protocol_version": "0.3.0",
   ...
 }
 
 Sending CHALLENGE message:
-{"protocol_version":"0.2.0",...,"decision":"accept",...}
+{"protocol_version":"0.3.0",...,"decision":"accept",...}
 
 Sending VERIFICATION message:
 {
@@ -186,12 +186,13 @@ See [SPEC.md](SPEC.md) for the full protocol specification including message typ
 
 ## Status and Roadmap
 
-v0.2 is a public draft. The reference implementation covers the core message flow but does not yet include settlement messages, agent capability declarations, or transport adapters.
+v0.3 is the current release. It adds ToolReceipt (the first mechanically verifiable evidence type), SettlementMessage, AgentCapability declarations, deterministic verification, Ollama and OpenAI adapters, and centralised LLM agent logic. See [CHANGELOG.md](CHANGELOG.md) for full details.
 
-v0.3 will add:
-- `SettlementMessage` type for explicit fund-transfer records
-- Agent capability declarations so agents can advertise supported claim types
-- MCP transport adapter for integration with tool-calling workflows
+v0.4 will add:
+- `ToolReceiptVerifier` engine with deterministic tool registry
+- Deterministic verification scenario in the live web demo
+- SettlementMessage streaming as first-class URPMessage events
+- MCP transport adapter for tool-calling workflows
 
 ## License
 

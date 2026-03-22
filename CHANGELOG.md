@@ -2,7 +2,7 @@
 
 All notable changes to URP are documented here.
 
-## [0.3.0] – Unreleased
+## [0.3.0] – 2026-03-22
 
 ### Added
 - ToolReceipt evidence type: a structured verifiable record of a tool invocation. Captures tool identity (name, version, provider, endpoint, definition hash), canonicalized input/output with SHA-256 hashes, execution metadata, side-effect class, nondeterminism class, replay instructions, and replay class (none, weak, stateful, strong, witness_only). Includes optional signature support.
@@ -13,6 +13,11 @@ All notable changes to URP are documented here.
 - SettlementMessage: first-class protocol message for distributing stakes after claim resolution. Fields: settlement_id, claim_id, outcome, researcher_delta, challenger_delta, timestamp, notes.
 - OllamaAdapter: local model support via Ollama. Allows URP agents to run against any Ollama-compatible model without API keys.
 - Centralised LLM agent logic in urp/llm_agents.py: ResearcherLLM, ChallengerLLM, VerifierLLM as shared classes used by both server.py and simulations.
+- Deterministic ToolReceipt verification demo (simulations/deterministic_demo.py): pure-function replay verification with tamper detection, no LLM required.
+- OpenAI adapter: OpenAIAdapter using stdlib urllib, no openai package dependency.
+- `/debug-env` endpoint gated behind `DEBUG=true` environment variable.
+- Basic rate limiting on `/run-simulation` (5 concurrent simulations max).
+- Maximum claim length enforcement (2000 characters).
 
 ### Changed
 - ProofReference repositioned as a citation pointer, not proof. Claims now carry an evidence list of ToolReceipt objects.

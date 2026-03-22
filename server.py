@@ -5,9 +5,9 @@ import json
 import os
 from typing import Optional
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from urp.core import Decision
@@ -29,6 +29,13 @@ app.add_middleware(
 
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+# ---------- Rate limiting and validation ----------
+
+MAX_CONCURRENT_SIMULATIONS = 5
+MAX_CLAIM_LENGTH = 2000
+_simulation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_SIMULATIONS)
 
 
 # ---------- Scenario runner (generator) ----------
@@ -228,6 +235,9 @@ async def index():
 
 @app.get("/debug-env")
 async def debug_env():
+    """Return environment diagnostics. Only available when DEBUG=true."""
+    if os.getenv("DEBUG", "").lower() != "true":
+        raise HTTPException(status_code=404, detail="Not found")
     key = os.getenv("GROQ_API_KEY")
     return {
         "GROQ_API_KEY_set": key is not None and len(key) > 0,
@@ -240,8 +250,29 @@ async def debug_env():
 
 @app.get("/run-simulation")
 async def run_simulation(claim: Optional[str] = Query(default=None)):
+    """Stream a URP simulation via SSE.
+
+    Enforces a maximum of MAX_CONCURRENT_SIMULATIONS concurrent runs and
+    rejects custom claims longer than MAX_CLAIM_LENGTH characters.
+    """
+    if claim is not None and len(claim) > MAX_CLAIM_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Claim exceeds maximum length of {MAX_CLAIM_LENGTH} characters.",
+        )
+    if _simulation_semaphore.locked():
+        raise HTTPException(
+            status_code=429,
+            detail="Too many concurrent simulations. Please try again shortly.",
+        )
+
+    async def _guarded_stream():
+        async with _simulation_semaphore:
+            async for event in _run_simulation(custom_claim=claim):
+                yield event
+
     return StreamingResponse(
-        _run_simulation(custom_claim=claim),
+        _guarded_stream(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

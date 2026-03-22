@@ -13,14 +13,14 @@ def _make_claim():
 class TestURPMessage:
     def test_protocol_version_default(self):
         msg = URPMessage("claim", _make_claim(), "agent-1")
-        assert msg.protocol_version == "0.2.0"
+        assert msg.protocol_version == "0.3.0"
 
     def test_to_json_compact_contains_protocol_version(self):
         msg = URPMessage("claim", _make_claim(), "agent-1")
         raw = msg.to_json(compact=True)
         data = json.loads(raw)
         assert "protocol_version" in data
-        assert data["protocol_version"] == "0.2.0"
+        assert data["protocol_version"] == "0.3.0"
 
     def test_from_json_round_trip(self):
         original = URPMessage("claim", _make_claim(), "agent-1")

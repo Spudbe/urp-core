@@ -25,7 +25,7 @@ flowchart TD
 
 ### Message Layer
 
-`urp/message.py` defines the `URPMessage` class, which wraps any protocol payload (Claim or Response) in a standard envelope. The envelope carries a `protocol_version` field (currently `"0.2.0"`), a UUID `message_id`, an ISO 8601 `timestamp`, the `sender` identifier, a `type` string (`"claim"` or `"response"`), and the serialised `payload`. Serialisation uses `to_json()` which delegates to the payload's `to_dict()` method, falling back to `dataclasses.asdict()`. Deserialisation via `from_json()` requires the caller to pass the payload class so the envelope can reconstruct the correct type.
+`urp/message.py` defines the `URPMessage` class, which wraps any protocol payload (Claim or Response) in a standard envelope. The envelope carries a `protocol_version` field (currently `"0.3.0"`), a UUID `message_id`, an ISO 8601 `timestamp`, the `sender` identifier, a `type` string (`"claim"` or `"response"`), and the serialised `payload`. Serialisation uses `to_json()` which delegates to the payload's `to_dict()` method, falling back to `dataclasses.asdict()`. Deserialisation via `from_json()` requires the caller to pass the payload class so the envelope can reconstruct the correct type.
 
 The four core data types live in `urp/core.py`: `Claim`, `ProofReference`, `Stake`, and `Response`. All are dataclasses with explicit `to_dict()` and `from_dict()` methods. `ClaimType` and `Decision` are string enums that map directly to the JSON schema values.
 

@@ -6,4 +6,4 @@ imported from scripts outside the package. It does not need to contain
 anything else.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

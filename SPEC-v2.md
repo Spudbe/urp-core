@@ -253,7 +253,7 @@
 }
 ```
 
-## 3. Out of Scope for v0.2
+## 3. Out of Scope for v0.3
 
 The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.
 ````
