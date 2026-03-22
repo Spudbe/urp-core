@@ -5,4 +5,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN mkdir -p static
 EXPOSE 8080
-CMD ["/bin/sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["python", "-c", "import os; import uvicorn; uvicorn.run('server:app', host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))"]
