@@ -314,6 +314,45 @@
 }
 ```
 
+### 2.9 MCP ToolReceipt Carrier
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCP CallToolResult with URP ToolReceipt",
+  "description": "MCP CallToolResult shape with a URP ToolReceipt embedded in _meta.",
+  "type": "object",
+  "required": ["content", "isError"],
+  "properties": {
+    "content": { "type": "array", "items": { "type": "object" } },
+    "structuredContent": { "type": ["object", "null"] },
+    "_meta": {
+      "type": "object",
+      "properties": {
+        "urp:tool_receipt": { "$ref": "#/$defs/ToolReceipt" }
+      }
+    },
+    "isError": { "type": "boolean" }
+  }
+}
+```
+
+### 2.10 JWSSignature
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URP JWSSignature",
+  "description": "A detached JWS signature block.",
+  "type": "object",
+  "required": ["protected", "signature"],
+  "properties": {
+    "protected": { "type": "string", "description": "Base64url-encoded protected header." },
+    "signature": { "type": "string", "description": "Base64url-encoded signature value." },
+    "header": { "type": ["object", "null"], "description": "Optional unprotected header parameters." }
+  },
+  "additionalProperties": false
+}
+```
+
 ## 3. Out of Scope for v0.3
 
 The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.
