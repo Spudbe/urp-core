@@ -6,7 +6,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "websockets>=12.0",
+    "groq>=0.4.0",
 ]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.115.0", "uvicorn>=0.30.0"]
+demo = ["groq>=0.4.0"]
 
 [project.urls]
 Repository = "https://github.com/Spudbe/urp-core"

@@ -59,7 +59,7 @@ class ResearcherLLM:
         proof_hash = hashlib.sha256(reasoning.encode()).hexdigest()
         proof = ProofReference(
             hash=proof_hash,
-            location="llm://groq/llama3-8b-8192",
+            location=f"llm://groq/{self.llm.model}",
             summary=answer,
             confidence_score=0.8,
         )

@@ -49,7 +49,7 @@ def _researcher_create_claim(llm: GroqAdapter, query: str) -> Claim:
     proof_hash = hashlib.sha256(reasoning.encode()).hexdigest()
     proof = ProofReference(
         hash=proof_hash,
-        location="llm://groq/llama3-8b-8192",
+        location=f"llm://groq/{llm.model}",
         summary=answer,
         confidence_score=0.8,
     )
