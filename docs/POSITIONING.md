@@ -2,35 +2,39 @@
 
 ## The Problem
 
-Agents can invoke tools through MCP and discover each other through A2A, but neither protocol provides a mechanism for one agent to prove a claim to another or for a receiving agent to challenge it. When Agent A tells Agent B that a dataset contains no PII, or that a calculation is correct, Agent B has no structured way to demand evidence, verify it, or impose a cost on Agent A for being wrong. The receiving agent must either trust the claim or discard it. There is no middle ground.
+Agents now automate research, code generation, and decision-making. They produce assertions like "the patch passes all tests" or "no personal data is present" yet there is no common way for downstream consumers to verify these claims without asking another language model. Agents can be wrong, manipulated, or malicious, and free-form natural language output provides no reliable handle for independent verification.
 
-This gap matters in enterprise and regulated environments. The EU AI Act requires that high-risk AI systems provide traceability and accountability for their outputs. Financial services regulators expect audit trails showing why a decision was made and what evidence supported it. In multi-agent systems where one agent's output becomes another agent's input, there is currently no standard way to record who claimed what, what proof was offered, whether it was challenged, and how the dispute was resolved. Without this, accountability stops at the boundary between agents.
+This gap matters in enterprise and regulated environments. The EU AI Act requires that high-risk AI systems provide traceability and accountability for their outputs. Financial services regulators expect audit trails showing why a decision was made and what evidence supported it. In multi-agent systems where one agent's output becomes another agent's input, there is currently no standard way to record who claimed what, what proof was offered, whether it was challenged, and how the dispute was resolved.
 
 ## Where URP Sits
 
+Other initiatives touch adjacent parts of the problem. The IETF Agentic Integrity Verification Standard (AIVS) describes a portable, self-verifying archive format for AI session logs — a session-level provenance mechanism rather than a claim-level one. Attestix provides DID-based identity, agent cards, delegation, and EU AI Act compliance tooling. A2A added signed agent cards in v0.3, enabling agents to discover each other and authenticate capabilities via JSON Web Signatures. Payment rails like x402 are seeing adoption in agent marketplaces for per-use settlement. None of these provide a general claim-level verification protocol.
+
 | Name | What it solves | What it does not solve |
 |------|---------------|----------------------|
-| **MCP** (Model Context Protocol) | Standardised tool invocation — lets an agent call external tools and receive structured results. | Does not verify whether the tool's output is correct, or let the caller challenge it. |
-| **A2A** (Agent-to-Agent Protocol) | Agent discovery and task delegation — lets agents find each other and hand off work. | Does not attach proof or economic commitment to the results of delegated work. |
-| **LangGraph / CrewAI** | Agent orchestration — manages multi-step workflows, agent coordination, and state within a single application. | Framework-specific; does not define a wire protocol. No mechanism for cross-framework claim verification or staking. |
-| **URP** (Universal Reasoning Protocol) | Claim accountability — structured claim submission with proof references, economic staking, challenge/response evaluation, and settlement. | Does not handle tool invocation, agent discovery, orchestration, identity, or transport. Designed to layer on top of protocols that do. |
+| MCP | Standardised tool invocation — lets an agent call external tools and receive structured results. | Does not verify whether the tool's output is correct, or let the caller challenge it. |
+| A2A | Agent discovery and task delegation — lets agents find each other and hand off work. Signed agent cards authenticate capabilities. | Does not attach proof or economic commitment to the results of delegated work. |
+| AIVS | Session-level provenance — hash-chained audit logs for complete AI sessions. | Session integrity, not claim-level accountability. No challenge/dispute mechanism. |
+| Attestix | DID-based agent identity, credentials, EU AI Act compliance workflows. | Identity attestation, not claim verification. No economic staking or challenge model. |
+| LangGraph / CrewAI | Agent orchestration — manages multi-step workflows and coordination. | Framework-specific. No wire protocol for cross-framework claim verification. |
+| URP | Claim accountability — structured claim submission with verifiable evidence, economic staking, challenge/response evaluation, and settlement. | Does not handle tool invocation, agent discovery, orchestration, identity, or transport. Designed to layer on top of protocols that do. |
 
 ## What URP Is Not
 
-- **Not a transport protocol.** URP defines message shapes and interaction flow. It does not specify how messages move between agents. The reference implementation uses WebSockets; a production deployment might use MCP, gRPC, or message queues.
-- **Not an orchestration framework.** URP does not manage agent lifecycles, workflow state, or task routing. It handles one concern: whether a claim is backed by evidence and what happens economically if the evidence is wrong.
-- **Not an identity system.** Agents are currently identified by plain string names. URP's spec stubs a JWS signing model but does not implement authentication, key management, or DID resolution.
-- **Not production-ready.** The reference implementation uses dummy proof hashes, an in-memory ledger, and a hard-coded knowledge base with three facts. It exists to validate the protocol design, not to run in production.
+- Not a transport protocol. URP defines message shapes and interaction flow. It does not specify how messages move between agents.
+- Not an orchestration framework. URP handles one concern: whether a claim is backed by verifiable evidence and what happens economically if the evidence is challenged.
+- Not an identity system. Agents are currently identified by plain string names. URP stubs a JWS signing model but does not implement authentication or key management.
+- Not production-ready. The reference implementation uses an in-memory ledger and exists to validate the protocol design.
 
 ## The Core Claim
 
-URP is built on the thesis that structured accountability produces more reliable agent outputs than trust-based systems. When an agent must back a claim with verifiable evidence — a tool receipt, a signed computation, a reproducible output — and risks losing staked value if the evidence is successfully challenged, the agent has a direct incentive to provide accurate, grounded claims. This is not novel: it is how audit trails, signed receipts, and dispute bonds work in traditional systems. URP applies the same mechanism to inter-agent communication, targeting claims that can be verified by replay, signature, or reproducible output — not claims that require trusting another LLM's opinion.
+URP is built on the thesis that structured accountability produces more reliable agent outputs than trust-based systems. When an agent must back a claim with verifiable evidence — a tool receipt, a signed computation, a reproducible output — and risks losing staked value if the evidence is successfully challenged, the agent has a direct incentive to provide accurate, grounded claims. This is not novel: it is how audit trails, signed receipts, and dispute bonds work in traditional systems. URP applies the same mechanism to inter-agent communication, targeting claims that can be verified by replay, signature, or reproducible output — not claims that require trusting another LLM opinion.
 
 ## Commercial Optionality
 
-URP is published as a protocol draft under the Business Source License 1.1 (BUSL-1.1). The specification and reference implementation are open for community review, feedback, and non-production use. On the change date of 2030-03-21, the license converts automatically to Apache-2.0, making the code freely available for all uses. Before the change date, commercial licensing is available for organisations that want to use URP in production systems, integrate it into commercial products, or build proprietary extensions. This structure allows the protocol to develop in the open while preserving the option to sustain development through commercial agreements.
+URP is published as a protocol draft under the Business Source License 1.1 (BUSL-1.1). The specification and reference implementation are open for community review, feedback, and non-production use. On the change date of 2030-03-21, the license converts automatically to Apache-2.0. Before the change date, commercial licensing is available for organisations that want to use URP in production systems or build proprietary extensions.
 
 ## Contact
 
-- **Spec feedback:** GitHub Issues on the [urp-core repository](https://github.com/Spudbe/urp-core/issues)
-- **Commercial licensing:** GitHub Issues at https://github.com/Spudbe/urp-core/issues
+- Spec feedback: GitHub Issues at https://github.com/Spudbe/urp-core/issues
+- Commercial licensing: GitHub Issues at https://github.com/Spudbe/urp-core/issues
