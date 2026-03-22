@@ -15,6 +15,7 @@
     --cyan: #00e5ff;
     --red: #ff4466;
     --dim: #4a5568;
+    --dim-green: #3a8a5c;
     --mono: 'Courier New', Consolas, monospace;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,6 +36,23 @@
     margin-bottom: 4px;
   }
   .subtitle { color: var(--dim); font-size: 12px; margin-bottom: 24px; }
+
+  /* Custom claim input */
+  #claim-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #claim-input::placeholder { color: var(--dim); }
+  #claim-input:focus { border-color: var(--green); box-shadow: 0 0 0 1px rgba(0,255,136,0.2); }
+
   .controls { display: flex; gap: 12px; margin-bottom: 24px; }
   button {
     background: transparent;
@@ -110,6 +128,13 @@
     overflow-x: auto;
     color: var(--text);
   }
+  .msg-card .reasoning {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--dim-green);
+    border-top: 1px solid var(--border);
+  }
 
   /* Settlement */
   .settlement {
@@ -141,6 +166,8 @@
 <h1>// URP Simulation</h1>
 <div class="subtitle">Universal Reasoning Protocol — Live Claim Lifecycle</div>
 
+<input type="text" id="claim-input" placeholder="Enter any claim for agents to debate..." />
+
 <div class="controls">
   <button id="btn-run">Run Simulation</button>
   <button id="btn-clear" class="secondary">Clear</button>
@@ -160,6 +187,7 @@ const balanceRows = document.getElementById('balance-rows');
 const status = document.getElementById('status');
 const btnRun = document.getElementById('btn-run');
 const btnClear = document.getElementById('btn-clear');
+const claimInput = document.getElementById('claim-input');
 
 let eventSource = null;
 
@@ -170,13 +198,19 @@ function agentClass(name) {
   return '';
 }
 
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 function updateBalances(balances) {
   balancesEl.style.display = 'block';
   balanceRows.innerHTML = '';
   for (const [name, amount] of Object.entries(balances)) {
     const row = document.createElement('div');
     row.className = 'balance-row ' + agentClass(name);
-    row.innerHTML = `<span class="agent">${name}</span><span class="amount">${amount} URC</span>`;
+    row.innerHTML = `<span class="agent">${escapeHtml(name)}</span><span class="amount">${escapeHtml(amount)} URC</span>`;
     balanceRows.appendChild(row);
   }
 }
@@ -184,7 +218,7 @@ function updateBalances(balances) {
 function addScenarioHeader(data) {
   const el = document.createElement('div');
   el.className = 'scenario-header';
-  el.innerHTML = `<div class="num">Scenario ${data.num}: ${data.title}</div><div class="query">${data.query}</div>`;
+  el.innerHTML = `<div class="num">Scenario ${data.num}: ${escapeHtml(data.title)}</div><div class="query">${escapeHtml(data.query)}</div>`;
   feed.appendChild(el);
 }
 
@@ -199,7 +233,12 @@ function addMessage(data) {
   const role = data.role || agentClass(data.sender);
   const card = document.createElement('div');
   card.className = 'msg-card ' + role;
-  card.innerHTML = `<div class="header">${data.sender}</div><pre>${JSON.stringify(data.message, null, 2)}</pre>`;
+  let html = `<div class="header">${escapeHtml(data.sender)}</div>`;
+  html += `<pre>${escapeHtml(JSON.stringify(data.message, null, 2))}</pre>`;
+  if (data.reasoning) {
+    html += `<div class="reasoning">${escapeHtml(data.reasoning)}</div>`;
+  }
+  card.innerHTML = html;
   feed.appendChild(card);
   card.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
@@ -208,7 +247,7 @@ function addSettlement(data) {
   const isReject = data.outcome.includes('REJECTED');
   const el = document.createElement('div');
   el.className = 'settlement' + (isReject ? ' rejected' : '');
-  el.innerHTML = `<div class="label">Settlement — Scenario ${data.scenario}</div><div class="outcome ${isReject ? 'rejected' : 'accepted'}">${data.outcome}</div>`;
+  el.innerHTML = `<div class="label">Settlement — Scenario ${data.scenario}</div><div class="outcome ${isReject ? 'rejected' : 'accepted'}">${escapeHtml(data.outcome)}</div>`;
   feed.appendChild(el);
   updateBalances(data.balances);
 }
@@ -226,7 +265,13 @@ function startSimulation() {
   btnRun.disabled = true;
   status.textContent = 'Connecting...';
 
-  eventSource = new EventSource('/run-simulation');
+  const customClaim = claimInput.value.trim();
+  let url = '/run-simulation';
+  if (customClaim) {
+    url += '?claim=' + encodeURIComponent(customClaim);
+  }
+
+  eventSource = new EventSource(url);
 
   eventSource.addEventListener('balances', (e) => {
     const data = JSON.parse(e.data);
@@ -270,6 +315,9 @@ function startSimulation() {
 }
 
 btnRun.addEventListener('click', startSimulation);
+claimInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !btnRun.disabled) startSimulation();
+});
 btnClear.addEventListener('click', () => {
   if (eventSource) { eventSource.close(); eventSource = null; }
   feed.innerHTML = '';

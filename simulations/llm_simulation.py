@@ -20,6 +20,14 @@ from urp.message import URPMessage
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+__all__ = [
+    "ResearcherLLM",
+    "ChallengerLLM",
+    "VerifierLLM",
+    "run_scenario",
+    "run_llm_simulation",
+]
+
 
 class ResearcherLLM:
     """Agent that uses an LLM to generate a claim with reasoning."""

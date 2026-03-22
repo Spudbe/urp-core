@@ -4,8 +4,9 @@ import asyncio
 import hashlib
 import json
 import uuid
+from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -25,6 +26,7 @@ app.add_middleware(
 )
 
 # ---------- LLM agent helpers (sync, run in threadpool) ----------
+
 
 def _researcher_create_claim(llm: GroqAdapter, query: str) -> Claim:
     system_prompt = (
@@ -60,7 +62,7 @@ def _researcher_create_claim(llm: GroqAdapter, query: str) -> Claim:
     )
 
 
-def _challenger_evaluate(llm: GroqAdapter, claim: Claim, sceptical: bool) -> Response:
+def _challenger_evaluate(llm: GroqAdapter, claim: Claim, sceptical: bool) -> tuple[Response, str]:
     if sceptical:
         system_prompt = (
             "You are a highly sceptical challenger agent in a verification protocol. "
@@ -88,6 +90,7 @@ def _challenger_evaluate(llm: GroqAdapter, claim: Claim, sceptical: bool) -> Res
     )
     raw = llm.complete(system_prompt, user_prompt)
     decision = Decision.CHALLENGE
+    reason = ""
     for line in raw.splitlines():
         if line.strip().upper().startswith("DECISION:"):
             value = line.split(":", 1)[1].strip().lower()
@@ -95,11 +98,14 @@ def _challenger_evaluate(llm: GroqAdapter, claim: Claim, sceptical: bool) -> Res
                 decision = Decision.ACCEPT
             else:
                 decision = Decision.CHALLENGE
+        elif line.strip().upper().startswith("REASON:"):
+            reason = line.split(":", 1)[1].strip()
     challenge_stake = Stake(amount=0.3) if decision == Decision.CHALLENGE else None
-    return Response(claim_id=claim.id, decision=decision, proof_ref=None, stake=challenge_stake)
+    resp = Response(claim_id=claim.id, decision=decision, proof_ref=None, stake=challenge_stake)
+    return resp, reason
 
 
-def _verifier_evaluate(llm: GroqAdapter, claim: Claim) -> Response:
+def _verifier_evaluate(llm: GroqAdapter, claim: Claim) -> tuple[Response, str]:
     system_prompt = (
         "You are a verifier agent in a verification protocol. "
         "You are given a claim and its proof summary. "
@@ -116,6 +122,7 @@ def _verifier_evaluate(llm: GroqAdapter, claim: Claim) -> Response:
     )
     raw = llm.complete(system_prompt, user_prompt)
     decision = Decision.REJECT
+    reason = ""
     for line in raw.splitlines():
         if line.strip().upper().startswith("DECISION:"):
             value = line.split(":", 1)[1].strip().lower()
@@ -123,7 +130,10 @@ def _verifier_evaluate(llm: GroqAdapter, claim: Claim) -> Response:
                 decision = Decision.ACCEPT
             else:
                 decision = Decision.REJECT
-    return Response(claim_id=claim.id, decision=decision, proof_ref=None, stake=None)
+        elif line.strip().upper().startswith("REASON:"):
+            reason = line.split(":", 1)[1].strip()
+    resp = Response(claim_id=claim.id, decision=decision, proof_ref=None, stake=None)
+    return resp, reason
 
 
 # ---------- SSE helpers ----------
@@ -134,7 +144,7 @@ def _sse(event: str, data: dict) -> str:
 
 # ---------- Scenario runner (generator) ----------
 
-SCENARIOS = [
+DEFAULT_SCENARIOS = [
     {
         "num": 1,
         "title": "Easy Claim (expect: accept)",
@@ -156,7 +166,75 @@ SCENARIOS = [
 ]
 
 
-async def _run_simulation():
+async def _run_scenario(loop, llm, ledger, num, title, query, sceptical):
+    """Run a single scenario and yield SSE events."""
+    yield _sse("scenario", {"num": num, "title": title, "query": query})
+
+    # Step 1 — Researcher
+    yield _sse("step", {"scenario": num, "step": 1, "label": "Researcher creates claim"})
+    claim = await loop.run_in_executor(None, _researcher_create_claim, llm, query)
+    msg_claim = URPMessage("claim", claim, "Researcher-LLM")
+    yield _sse("urp_message", {
+        "scenario": num,
+        "sender": "Researcher-LLM",
+        "role": "researcher",
+        "reasoning": claim.proof_ref.summary,
+        "message": json.loads(msg_claim.to_json(compact=False)),
+    })
+    ledger.withdraw("Researcher-LLM", claim.stake.amount)
+
+    # Step 2 — Challenger
+    yield _sse("step", {"scenario": num, "step": 2, "label": "Challenger evaluates claim"})
+    challenge_resp, challenger_reason = await loop.run_in_executor(
+        None, _challenger_evaluate, llm, claim, sceptical
+    )
+    msg_challenge = URPMessage("response", challenge_resp, "Challenger-LLM")
+    yield _sse("urp_message", {
+        "scenario": num,
+        "sender": "Challenger-LLM",
+        "role": "challenger",
+        "reasoning": challenger_reason,
+        "message": json.loads(msg_challenge.to_json(compact=False)),
+    })
+    if challenge_resp.stake:
+        ledger.withdraw("Challenger-LLM", challenge_resp.stake.amount)
+
+    # Step 3 — Verifier
+    yield _sse("step", {"scenario": num, "step": 3, "label": "Verifier makes final decision"})
+    final_resp, verifier_reason = await loop.run_in_executor(None, _verifier_evaluate, llm, claim)
+    msg_final = URPMessage("response", final_resp, "Verifier-LLM")
+    yield _sse("urp_message", {
+        "scenario": num,
+        "sender": "Verifier-LLM",
+        "role": "verifier",
+        "reasoning": verifier_reason,
+        "message": json.loads(msg_final.to_json(compact=False)),
+    })
+
+    # Settlement
+    if final_resp.decision == Decision.ACCEPT:
+        ledger.deposit("Researcher-LLM", claim.stake.amount)
+        if challenge_resp.decision == Decision.CHALLENGE and challenge_resp.stake:
+            ledger.deposit("Researcher-LLM", challenge_resp.stake.amount)
+            outcome = "Claim ACCEPTED. Researcher recovers stake and wins challenger's stake."
+        else:
+            outcome = "Claim ACCEPTED. Researcher recovers stake."
+    else:
+        if challenge_resp.decision == Decision.CHALLENGE and challenge_resp.stake:
+            ledger.deposit("Challenger-LLM", claim.stake.amount + challenge_resp.stake.amount)
+            outcome = "Claim REJECTED. Challenger collects both stakes."
+        else:
+            outcome = "Claim REJECTED. Researcher's stake is burnt."
+
+    balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
+    yield _sse("settlement", {
+        "scenario": num,
+        "outcome": outcome,
+        "balances": balances,
+    })
+
+
+async def _run_simulation(custom_claim: Optional[str] = None):
     loop = asyncio.get_event_loop()
     llm = GroqAdapter()
 
@@ -168,70 +246,22 @@ async def _run_simulation():
     balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
     yield _sse("balances", {"balances": balances, "label": "Initial Balances"})
 
-    for sc in SCENARIOS:
-        num, title, query, sceptical = sc["num"], sc["title"], sc["query"], sc["sceptical"]
+    if custom_claim:
+        scenarios = [{
+            "num": 1,
+            "title": "Custom Claim",
+            "query": custom_claim,
+            "sceptical": True,
+        }]
+    else:
+        scenarios = DEFAULT_SCENARIOS
 
-        yield _sse("scenario", {"num": num, "title": title, "query": query})
-
-        # Step 1 — Researcher
-        yield _sse("step", {"scenario": num, "step": 1, "label": "Researcher creates claim"})
-        claim = await loop.run_in_executor(None, _researcher_create_claim, llm, query)
-        msg_claim = URPMessage("claim", claim, "Researcher-LLM")
-        yield _sse("urp_message", {
-            "scenario": num,
-            "sender": "Researcher-LLM",
-            "role": "researcher",
-            "message": json.loads(msg_claim.to_json(compact=False)),
-        })
-        ledger.withdraw("Researcher-LLM", claim.stake.amount)
-
-        # Step 2 — Challenger
-        yield _sse("step", {"scenario": num, "step": 2, "label": "Challenger evaluates claim"})
-        challenge_resp = await loop.run_in_executor(
-            None, _challenger_evaluate, llm, claim, sceptical
-        )
-        msg_challenge = URPMessage("response", challenge_resp, "Challenger-LLM")
-        yield _sse("urp_message", {
-            "scenario": num,
-            "sender": "Challenger-LLM",
-            "role": "challenger",
-            "message": json.loads(msg_challenge.to_json(compact=False)),
-        })
-        if challenge_resp.stake:
-            ledger.withdraw("Challenger-LLM", challenge_resp.stake.amount)
-
-        # Step 3 — Verifier
-        yield _sse("step", {"scenario": num, "step": 3, "label": "Verifier makes final decision"})
-        final_resp = await loop.run_in_executor(None, _verifier_evaluate, llm, claim)
-        msg_final = URPMessage("response", final_resp, "Verifier-LLM")
-        yield _sse("urp_message", {
-            "scenario": num,
-            "sender": "Verifier-LLM",
-            "role": "verifier",
-            "message": json.loads(msg_final.to_json(compact=False)),
-        })
-
-        # Settlement
-        if final_resp.decision == Decision.ACCEPT:
-            ledger.deposit("Researcher-LLM", claim.stake.amount)
-            if challenge_resp.decision == Decision.CHALLENGE and challenge_resp.stake:
-                ledger.deposit("Researcher-LLM", challenge_resp.stake.amount)
-                outcome = "Claim ACCEPTED. Researcher recovers stake and wins challenger's stake."
-            else:
-                outcome = "Claim ACCEPTED. Researcher recovers stake."
-        else:
-            if challenge_resp.decision == Decision.CHALLENGE and challenge_resp.stake:
-                ledger.deposit("Challenger-LLM", claim.stake.amount + challenge_resp.stake.amount)
-                outcome = "Claim REJECTED. Challenger collects both stakes."
-            else:
-                outcome = "Claim REJECTED. Researcher's stake is burnt."
-
-        balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
-        yield _sse("settlement", {
-            "scenario": num,
-            "outcome": outcome,
-            "balances": balances,
-        })
+    for sc in scenarios:
+        async for event in _run_scenario(
+            loop, llm, ledger,
+            sc["num"], sc["title"], sc["query"], sc["sceptical"],
+        ):
+            yield event
 
     yield _sse("complete", {"message": "Simulation complete."})
 
@@ -239,9 +269,9 @@ async def _run_simulation():
 # ---------- Routes ----------
 
 @app.get("/run-simulation")
-async def run_simulation():
+async def run_simulation(claim: Optional[str] = Query(default=None)):
     return StreamingResponse(
-        _run_simulation(),
+        _run_simulation(custom_claim=claim),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
