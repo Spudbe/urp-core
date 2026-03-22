@@ -142,6 +142,58 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
     })
 
 
+_SSE_HEARTBEAT = ":\n\n"  # SSE comment — clients silently ignore this
+_HEARTBEAT_INTERVAL = 5  # seconds
+
+
+async def _simulation_worker(
+    queue: asyncio.Queue,
+    custom_claim: Optional[str],
+) -> None:
+    """Background coroutine that runs scenarios and pushes SSE strings into *queue*.
+
+    Puts ``None`` as a sentinel when finished.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        llm = GroqAdapter()
+
+        researcher = ResearcherLLM("Researcher-LLM", llm)
+        challenger = ChallengerLLM("Challenger-LLM", llm)
+        verifier = VerifierLLM("Verifier-LLM", llm)
+
+        ledger = Ledger()
+        for name in (researcher.name, challenger.name, verifier.name):
+            ledger.deposit(name, 5.0)
+
+        balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
+        await queue.put(_sse("balances", {"balances": balances, "label": "Initial Balances"}))
+
+        if custom_claim:
+            scenarios = [{
+                "num": 1,
+                "title": "Custom Claim",
+                "query": custom_claim,
+                "sceptical": True,
+            }]
+        else:
+            scenarios = DEFAULT_SCENARIOS
+
+        for sc in scenarios:
+            async for event in _run_scenario(
+                loop, researcher, challenger, verifier, ledger,
+                sc["num"], sc["title"], sc["query"], sc["sceptical"],
+            ):
+                await queue.put(event)
+
+        await queue.put(_sse("complete", {"message": "Simulation complete."}))
+    except Exception as exc:
+        await queue.put(_sse("error", {"code": "simulation_error", "message": str(exc)}))
+        await queue.put(_sse("complete", {"message": "Simulation aborted."}))
+    finally:
+        await queue.put(None)  # sentinel
+
+
 async def _run_simulation(custom_claim: Optional[str] = None):
     # Immediate ping so Railway proxy sees data within 1 second
     yield _sse("ping", {"status": "connected"})
@@ -151,38 +203,23 @@ async def _run_simulation(custom_claim: Optional[str] = None):
         yield _sse("complete", {"message": "Simulation aborted."})
         return
 
-    loop = asyncio.get_event_loop()
-    llm = GroqAdapter()
+    queue: asyncio.Queue = asyncio.Queue()
+    task = asyncio.create_task(_simulation_worker(queue, custom_claim))
 
-    researcher = ResearcherLLM("Researcher-LLM", llm)
-    challenger = ChallengerLLM("Challenger-LLM", llm)
-    verifier = VerifierLLM("Verifier-LLM", llm)
-
-    ledger = Ledger()
-    for name in (researcher.name, challenger.name, verifier.name):
-        ledger.deposit(name, 5.0)
-
-    balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
-    yield _sse("balances", {"balances": balances, "label": "Initial Balances"})
-
-    if custom_claim:
-        scenarios = [{
-            "num": 1,
-            "title": "Custom Claim",
-            "query": custom_claim,
-            "sceptical": True,
-        }]
-    else:
-        scenarios = DEFAULT_SCENARIOS
-
-    for sc in scenarios:
-        async for event in _run_scenario(
-            loop, researcher, challenger, verifier, ledger,
-            sc["num"], sc["title"], sc["query"], sc["sceptical"],
-        ):
+    try:
+        while True:
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=_HEARTBEAT_INTERVAL)
+            except asyncio.TimeoutError:
+                # No event within 5s — send a keep-alive comment
+                yield _SSE_HEARTBEAT
+                continue
+            if event is None:
+                break
             yield event
-
-    yield _sse("complete", {"message": "Simulation complete."})
+    finally:
+        if not task.done():
+            task.cancel()
 
 
 # ---------- Routes ----------
