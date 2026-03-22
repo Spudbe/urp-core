@@ -82,6 +82,16 @@ python simulations/llm_simulation.py
 
 `GROQ_API_KEY` is required. The demo will not run without it. Get a free key at [console.groq.com](https://console.groq.com).
 
+## Deterministic Verification Demo
+
+This demo shows a claim backed by a genuinely replayable ToolReceipt — no LLM, no API key, no trust required. A pure function (`compute_fibonacci`) is called, its inputs and outputs are recorded in a ToolReceipt with SHA-256 hashes, and a verifier re-runs the function to confirm the output matches. Tampering with the receipt is detected because the replayed output hash does not match.
+
+```bash
+python simulations/deterministic_demo.py
+```
+
+This demonstrates the evidence-first principle: claims that can be verified by replay, not by asking another LLM.
+
 ### Ollama (Local Models)
 
 URP also works with local models via [Ollama](https://ollama.com). No API key needed.
