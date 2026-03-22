@@ -127,3 +127,64 @@ class TestDeterministicEndpoint:
             resp = client.get("/run-deterministic")
             assert resp.status_code == 200
             assert "event: complete" in resp.text
+
+
+class TestCapabilityEndpoint:
+    """The /.well-known/urp-capability.json endpoint serves an AgentCapability."""
+
+    def test_returns_200_json(self, client):
+        resp = client.get("/.well-known/urp-capability.json")
+        assert resp.status_code == 200
+        assert "application/json" in resp.headers["content-type"]
+
+    def test_contains_protocol_version(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        assert data["protocol_version"] == "0.3.0"
+
+    def test_contains_agent_identity(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        assert data["agent"]["id"] == "urp-demo-server"
+        assert data["agent"]["name"] == "URP Demo Server"
+
+    def test_contains_supported_claim_kinds(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        kinds = data["supported_claim_kinds"]
+        assert "tool_output" in kinds
+        assert "factual_assertion" in kinds
+
+    def test_contains_accepted_evidence_types(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        types = data["accepted_evidence_types"]
+        assert "tool_receipt" in types
+
+    def test_contains_stake_policy(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        policy = data["stake_policy"]
+        assert policy["required"] is True
+        assert policy["minimum_amount"] == 0.1
+        assert policy["currency"] == "URC"
+
+    def test_contains_compatible_versions(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        versions = data["compatible_protocol_versions"]
+        assert "0.2.0" in versions
+        assert "0.3.0" in versions
+
+    def test_contains_metadata_with_tools(self, client):
+        data = client.get("/.well-known/urp-capability.json").json()
+        meta = data["metadata"]
+        assert meta["demo"] is True
+        assert "compute_fibonacci" in meta["deterministic_tools"]
+        assert "math_eval" in meta["deterministic_tools"]
+
+    def test_round_trips_through_agent_capability(self):
+        """The JSON output must be parseable back into an AgentCapability."""
+        from fastapi.testclient import TestClient
+        from server import app
+        from urp.core import AgentCapability
+
+        client = TestClient(app)
+        data = client.get("/.well-known/urp-capability.json").json()
+        cap = AgentCapability.from_dict(data)
+        assert cap.protocol_version == "0.3.0"
+        assert cap.agent.id == "urp-demo-server"

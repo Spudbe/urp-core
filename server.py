@@ -10,12 +10,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from urp.core import Decision, SettlementMessage, SettlementOutcome
+from urp.core import (
+    AgentCapability,
+    AgentIdentity,
+    ClaimKind,
+    ClaimType,
+    Decision,
+    EvidenceStrength,
+    EvidenceType,
+    SettlementMessage,
+    SettlementOutcome,
+    StakePolicy,
+)
 from urp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
 from urp.ledger import Ledger
 from urp.llm import GroqAdapter
 from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
-from urp.message import URPMessage
+from urp.message import PROTOCOL_VERSION, URPMessage
 from urp.verify import ToolReceiptVerifier, VerificationStatus
 
 app = FastAPI(title="URP Simulation Server")
@@ -648,6 +659,48 @@ async def run_deterministic():
             "Connection": "keep-alive",
         },
     )
+
+
+@app.get("/.well-known/urp-capability.json")
+async def urp_capability():
+    """Serve an AgentCapability declaration for this URP instance.
+
+    This is a discovery endpoint. Protocol-aware clients can fetch it to
+    learn what claim types, evidence types, and protocol versions this
+    agent supports before submitting claims.
+    """
+    capability = AgentCapability(
+        protocol_version=PROTOCOL_VERSION,
+        agent=AgentIdentity(
+            id="urp-demo-server",
+            name="URP Demo Server",
+            version=PROTOCOL_VERSION,
+        ),
+        supported_claim_types=[ClaimType.ASSERTION],
+        supported_claim_kinds=[
+            ClaimKind.TOOL_OUTPUT,
+            ClaimKind.FACTUAL_ASSERTION,
+            ClaimKind.DATA_INTEGRITY,
+        ],
+        accepted_evidence_types=[
+            EvidenceType.TOOL_RECEIPT,
+            EvidenceType.PROOF_REFERENCE,
+        ],
+        minimum_evidence_strength=EvidenceStrength.UNSIGNED,
+        stake_policy=StakePolicy(
+            required=True,
+            minimum_amount=0.1,
+            currency="URC",
+        ),
+        compatible_protocol_versions=["0.2.0", "0.3.0"],
+        metadata={
+            "demo": True,
+            "deterministic_tools": list(BUILTIN_TOOLS.keys()),
+            "live_url": "https://urp-core-production.up.railway.app",
+            "source": "https://github.com/Spudbe/urp-core",
+        },
+    )
+    return JSONResponse(content=capability.to_dict())
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
