@@ -60,7 +60,7 @@ Verification: One or more verifier agents inspect the claim and the associated p
 Settlement: Based on the final decision, funds are transferred. Accepted claims refund the claimant and pay the responder (if there was a challenge). Rejected claims forfeit the claimant’s stake.
 
 Future Directions
-The following areas are recognised as necessary for a complete protocol but are deferred beyond v0.2: proof serialisation format, transport protocol bindings, agent identity and signing model (see signing stub above), privacy and encryption, governance and versioning, and the microtransaction settlement layer. Contributions and feedback via GitHub Issues are welcome.
+The following areas are recognised as necessary for a complete protocol but are deferred beyond v0.2: proof serialisation format, transport protocol bindings, agent identity and signing model (see signing stub above), privacy and encryption, governance and versioning, and the microtransaction settlement layer. See [ROADMAP.md](ROADMAP.md) for planned work. Contributions and feedback via GitHub Issues are welcome.
 
 ## Error Codes
 
