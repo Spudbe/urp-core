@@ -25,20 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.state.groq_api_key_available = False
-app.state.groq_api_key_error = None
-
-
-@app.on_event("startup")
-async def validate_runtime_config() -> None:
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    app.state.groq_api_key_available = bool(groq_api_key)
-    app.state.groq_api_key_error = None if groq_api_key else (
-        "GROQ_API_KEY is not set. Set it in Railway Variables or your local environment "
-        "before calling /run-simulation. Create a key at https://console.groq.com/keys."
-    )
-
-
 # ---------- SSE helpers ----------
 
 def _sse(event: str, data: dict) -> str:
@@ -198,8 +184,14 @@ async def _run_simulation(custom_claim: Optional[str] = None):
     # Immediate ping so Railway proxy sees data within 1 second
     yield _sse("ping", {"status": "connected"})
 
-    if not getattr(app.state, "groq_api_key_available", False):
-        yield _sse("error", {"code": "missing_groq_api_key", "message": app.state.groq_api_key_error})
+    if not os.getenv("GROQ_API_KEY"):
+        yield _sse("error", {
+            "code": "missing_groq_api_key",
+            "message": (
+                "GROQ_API_KEY is not set. Set it in Railway Variables or your local environment "
+                "before calling /run-simulation. Create a key at https://console.groq.com/keys."
+            ),
+        })
         yield _sse("complete", {"message": "Simulation aborted."})
         return
 
