@@ -280,6 +280,19 @@ function startSimulation() {
 
   eventSource = new EventSource(url);
 
+  eventSource.addEventListener('ping', () => {});
+  eventSource.addEventListener('error', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.code) {
+        status.textContent = data.message || 'Error';
+        eventSource.close();
+        eventSource = null;
+        btnRun.disabled = false;
+      }
+    } catch (_) {}
+  });
+
   eventSource.addEventListener('balances', (e) => {
     const data = JSON.parse(e.data);
     updateBalances(data.balances);

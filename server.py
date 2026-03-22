@@ -75,6 +75,7 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
 
     # Step 1 — Researcher
     yield _sse("step", {"scenario": num, "step": 1, "label": "Researcher creates claim"})
+    await asyncio.sleep(0)
     claim = await loop.run_in_executor(None, researcher.create_claim, query)
     msg_claim = URPMessage("claim", claim, researcher.name)
     yield _sse("urp_message", {
@@ -88,6 +89,7 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
 
     # Step 2 — Challenger
     yield _sse("step", {"scenario": num, "step": 2, "label": "Challenger evaluates claim"})
+    await asyncio.sleep(0)
     challenge_resp, challenger_reason = await loop.run_in_executor(
         None, challenger.evaluate_claim, claim, sceptical
     )
@@ -104,6 +106,7 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
 
     # Step 3 — Verifier
     yield _sse("step", {"scenario": num, "step": 3, "label": "Verifier makes final decision"})
+    await asyncio.sleep(0)
     final_resp, verifier_reason = await loop.run_in_executor(
         None, verifier.evaluate_claim, claim
     )
@@ -140,6 +143,9 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
 
 
 async def _run_simulation(custom_claim: Optional[str] = None):
+    # Immediate ping so Railway proxy sees data within 1 second
+    yield _sse("ping", {"status": "connected"})
+
     if not getattr(app.state, "groq_api_key_available", False):
         yield _sse("error", {"code": "missing_groq_api_key", "message": app.state.groq_api_key_error})
         yield _sse("complete", {"message": "Simulation aborted."})
@@ -193,7 +199,11 @@ async def run_simulation(claim: Optional[str] = Query(default=None)):
     return StreamingResponse(
         _run_simulation(custom_claim=claim),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
