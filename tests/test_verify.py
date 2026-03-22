@@ -6,10 +6,14 @@ Includes deterministic hash test vectors that catch serialisation drift.
 import pytest
 
 from urp.core import (
+    Claim,
+    ClaimType,
     EvidenceStrength,
     NondeterminismClass,
+    ProofReference,
     ReplayClass,
     SideEffectClass,
+    Stake,
     ToolReceipt,
 )
 from urp.deterministic_tools import (
@@ -20,6 +24,7 @@ from urp.deterministic_tools import (
     math_eval,
 )
 from urp.verify import (
+    BatchVerificationResult,
     ToolReceiptVerifier,
     VerificationResult,
     VerificationStatus,
@@ -436,3 +441,110 @@ class TestComputeSha256:
         result = compute_sha256({"data": "hello"})
         assert result["hash"] == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
         assert result["algorithm"] == "sha256"
+
+
+# ==========================================================================
+# Batch verification tests
+# ==========================================================================
+
+def _make_claim_with_evidence(receipts: list) -> Claim:
+    """Build a Claim with the given evidence list."""
+    return Claim(
+        id="batch-test-claim",
+        statement="test",
+        type=ClaimType.ASSERTION,
+        proof_ref=ProofReference(hash="h", location="l", summary="s"),
+        stake=Stake(amount=0.1),
+        evidence=receipts,
+    )
+
+
+class TestBatchVerification:
+    """verify_claim() over a Claim's full evidence list."""
+
+    def test_all_verified(self):
+        v = _make_verifier()
+        r1 = _make_receipt(
+            tool_name="compute_fibonacci",
+            input_inline={"n": 10},
+            output_inline={"input": 10, "result": 55, "algorithm": "iterative"},
+        )
+        r2 = _make_receipt(
+            tool_name="compute_factorial",
+            input_inline={"n": 5},
+            output_inline={"input": 5, "result": 120, "algorithm": "iterative"},
+        )
+        claim = _make_claim_with_evidence([r1, r2])
+        result = v.verify_claim(claim)
+        assert result.all_verified is True
+        assert len(result.results) == 2
+        assert result.claim_id == "batch-test-claim"
+        assert "2" in result.summary
+
+    def test_one_tampered(self):
+        v = _make_verifier()
+        good = _make_receipt(
+            tool_name="compute_fibonacci",
+            input_inline={"n": 10},
+            output_inline={"input": 10, "result": 55, "algorithm": "iterative"},
+        )
+        bad = _make_receipt(
+            tool_name="compute_fibonacci",
+            input_inline={"n": 10},
+            output_inline={"input": 10, "result": 99, "algorithm": "iterative"},
+        )
+        claim = _make_claim_with_evidence([good, bad])
+        result = v.verify_claim(claim)
+        assert result.all_verified is False
+        assert len(result.results) == 2
+        assert "1/2 verified" in result.summary
+
+    def test_empty_evidence(self):
+        v = _make_verifier()
+        claim = _make_claim_with_evidence([])
+        result = v.verify_claim(claim)
+        assert result.all_verified is False
+        assert len(result.results) == 0
+        assert "No evidence" in result.summary
+
+    def test_single_receipt(self):
+        v = _make_verifier()
+        r = _make_receipt()
+        claim = _make_claim_with_evidence([r])
+        result = v.verify_claim(claim)
+        assert result.all_verified is True
+        assert len(result.results) == 1
+
+    def test_to_dict_round_trip(self):
+        v = _make_verifier()
+        r = _make_receipt()
+        claim = _make_claim_with_evidence([r])
+        result = v.verify_claim(claim)
+        d = result.to_dict()
+        assert d["claim_id"] == "batch-test-claim"
+        assert d["all_verified"] is True
+        assert len(d["results"]) == 1
+        assert d["results"][0]["status"] == "verified_exact"
+
+    def test_mixed_tools(self):
+        v = _make_verifier()
+        fib = _make_receipt(
+            tool_name="compute_fibonacci",
+            input_inline={"n": 10},
+            output_inline={"input": 10, "result": 55, "algorithm": "iterative"},
+        )
+        sha = _make_receipt(
+            tool_name="compute_sha256",
+            input_inline={"data": "hello"},
+            output_inline=compute_sha256({"data": "hello"}),
+        )
+        math = _make_receipt(
+            tool_name="math_eval",
+            input_inline={"expression": "2 + 3"},
+            output_inline={"expression": "2 + 3", "result": 5, "algorithm": "ast_eval"},
+        )
+        claim = _make_claim_with_evidence([fib, sha, math])
+        result = v.verify_claim(claim)
+        assert result.all_verified is True
+        assert len(result.results) == 3
+        assert "3" in result.summary

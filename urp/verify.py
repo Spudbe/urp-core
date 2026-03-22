@@ -281,3 +281,70 @@ class ToolReceiptVerifier:
                     f"{receipt.output_sha256} but replay produced {actual_hash}."
                 ),
             )
+
+    def verify_claim(self, claim) -> BatchVerificationResult:
+        """Verify all ToolReceipts in a Claim's evidence list.
+
+        Returns a summary result indicating whether all receipts verified,
+        some failed, or none were present.
+
+        Args:
+            claim: A Claim object with an ``evidence`` list of ToolReceipts.
+
+        Returns:
+            A BatchVerificationResult summarising the outcomes.
+        """
+        if not claim.evidence:
+            return BatchVerificationResult(
+                claim_id=claim.id,
+                results=[],
+                all_verified=False,
+                summary="No evidence attached to claim.",
+            )
+
+        results = [self.verify(receipt) for receipt in claim.evidence]
+        all_verified = all(
+            r.status == VerificationStatus.VERIFIED_EXACT for r in results
+        )
+        verified_count = sum(
+            1 for r in results if r.status == VerificationStatus.VERIFIED_EXACT
+        )
+        total = len(results)
+
+        if all_verified:
+            summary = f"All {total} receipt(s) verified by replay."
+        else:
+            failed = total - verified_count
+            summary = f"{verified_count}/{total} verified, {failed} failed."
+
+        return BatchVerificationResult(
+            claim_id=claim.id,
+            results=results,
+            all_verified=all_verified,
+            summary=summary,
+        )
+
+
+@dataclass
+class BatchVerificationResult:
+    """Summary result of verifying all receipts in a Claim.
+
+    Attributes:
+        claim_id: The claim that was verified.
+        results: Individual VerificationResult for each receipt.
+        all_verified: True only if every receipt has VERIFIED_EXACT status.
+        summary: Human-readable summary of the batch outcome.
+    """
+    claim_id: str
+    results: list[VerificationResult]
+    all_verified: bool
+    summary: str
+
+    def to_dict(self) -> dict:
+        """Serialise to a plain dict."""
+        return {
+            "claim_id": self.claim_id,
+            "results": [r.to_dict() for r in self.results],
+            "all_verified": self.all_verified,
+            "summary": self.summary,
+        }
