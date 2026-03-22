@@ -262,6 +262,7 @@ class Claim:
         proof_ref: A ProofReference pointing to supporting evidence.
         stake: A Stake used to back the claim.
         evidence: A list of ToolReceipt objects backing this claim.
+        structured_claim: Optional StructuredClaim as a dict (from StructuredClaim.to_dict()).
     """
     id: str
     statement: str
@@ -269,9 +270,10 @@ class Claim:
     proof_ref: ProofReference
     stake: Stake
     evidence: list[ToolReceipt] = field(default_factory=list)
+    structured_claim: Optional[dict] = None  # StructuredClaim.to_dict() when present
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "id": self.id,
             "statement": self.statement,
             "type": self.type.value,
@@ -279,6 +281,9 @@ class Claim:
             "stake": self.stake.to_dict(),
             "evidence": [e.to_dict() for e in self.evidence],
         }
+        if self.structured_claim is not None:
+            d["structured_claim"] = self.structured_claim
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> Claim:
@@ -289,6 +294,7 @@ class Claim:
             proof_ref=ProofReference.from_dict(data["proof_ref"]),
             stake=Stake.from_dict(data["stake"]),
             evidence=[ToolReceipt.from_dict(e) for e in data.get("evidence", [])],
+            structured_claim=data.get("structured_claim"),
         )
 
 

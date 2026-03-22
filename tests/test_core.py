@@ -101,6 +101,34 @@ class TestClaim:
         assert reconstructed.evidence[0].tool_name == "calc"
         assert reconstructed.evidence[0].input_sha256 == tr.input_sha256
 
+    def test_claim_without_structured_claim(self):
+        pr = ProofReference(hash="h", location="l", summary="s")
+        st = Stake(amount=0.5)
+        c = Claim(id="c-1", statement="test", type=ClaimType.ASSERTION,
+                  proof_ref=pr, stake=st)
+        d = c.to_dict()
+        assert "structured_claim" not in d
+
+    def test_claim_with_structured_claim(self):
+        pr = ProofReference(hash="h", location="l", summary="s")
+        st = Stake(amount=0.5)
+        sc = {
+            "sc_version": "0.5",
+            "kind": "tool_output",
+            "proposition": {
+                "type": "tool_output_equals",
+                "tool_name": "test",
+                "input": {},
+                "expected_output": {},
+            },
+        }
+        c = Claim(id="c-1", statement="test", type=ClaimType.ASSERTION,
+                  proof_ref=pr, stake=st, structured_claim=sc)
+        d = c.to_dict()
+        assert d["structured_claim"] == sc
+        reconstructed = Claim.from_dict(d)
+        assert reconstructed.structured_claim == sc
+
 
 class TestDecision:
     def test_enum_members(self):
