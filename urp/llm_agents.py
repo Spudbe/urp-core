@@ -58,17 +58,28 @@ class ResearcherLLM:
             "the statement is incorrect — state what you believe to be true. "
             "Reply in this exact format:\n"
             "ANSWER: <your answer>\n"
-            "REASONING: <your reasoning>"
+            "REASONING: <your reasoning>\n"
+            "CONFIDENCE: <a number between 0.0 and 1.0 where 1.0 means certain and 0.0 means speculative>"
         )
         raw = self.llm.complete(system_prompt, query)
 
         answer = raw
         reasoning = raw
+        confidence: float | None = None
         for line in raw.splitlines():
             if line.strip().upper().startswith("ANSWER:"):
                 answer = line.split(":", 1)[1].strip()
             elif line.strip().upper().startswith("REASONING:"):
                 reasoning = line.split(":", 1)[1].strip()
+            elif line.strip().upper().startswith("CONFIDENCE:"):
+                try:
+                    confidence = float(line.split(":", 1)[1].strip())
+                    confidence = max(0.0, min(1.0, confidence))
+                except (ValueError, IndexError):
+                    confidence = None
+
+        if confidence is None:
+            confidence = 0.5
 
         model_name = getattr(self.llm, "model", "unknown")
 
@@ -77,7 +88,7 @@ class ResearcherLLM:
             hash=proof_hash,
             location=f"llm://groq/{model_name}",
             summary=answer,
-            confidence_score=0.8,
+            confidence_score=confidence,
         )
 
         receipt = ToolReceipt(

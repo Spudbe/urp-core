@@ -103,6 +103,30 @@ class TestResearcherLLM:
         assert receipt.input_inline["user_prompt"] == "What is 2+2?"
         assert receipt.output_inline["answer"] == "test answer"
 
+    def test_confidence_score_parsed_from_llm(self):
+        llm = _mock_llm("ANSWER: test\nREASONING: because\nCONFIDENCE: 0.9")
+        researcher = ResearcherLLM("test-researcher", llm)
+        claim = researcher.create_claim("test query")
+        assert claim.proof_ref.confidence_score == 0.9
+
+    def test_confidence_score_defaults_when_missing(self):
+        llm = _mock_llm("ANSWER: test\nREASONING: because")
+        researcher = ResearcherLLM("test-researcher", llm)
+        claim = researcher.create_claim("test query")
+        assert claim.proof_ref.confidence_score == 0.5
+
+    def test_confidence_score_clamped_to_max(self):
+        llm = _mock_llm("ANSWER: test\nREASONING: because\nCONFIDENCE: 1.5")
+        researcher = ResearcherLLM("test-researcher", llm)
+        claim = researcher.create_claim("test query")
+        assert claim.proof_ref.confidence_score == 1.0
+
+    def test_confidence_score_falls_back_on_invalid(self):
+        llm = _mock_llm("ANSWER: test\nREASONING: because\nCONFIDENCE: not_a_number")
+        researcher = ResearcherLLM("test-researcher", llm)
+        claim = researcher.create_claim("test query")
+        assert claim.proof_ref.confidence_score == 0.5
+
 
 class TestOllamaAdapter:
     def test_raises_runtime_error_when_connection_fails(self):
