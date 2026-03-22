@@ -3,6 +3,8 @@
 Demonstrates a claim backed by a genuinely replayable ToolReceipt.
 The verifier re-runs the tool, hashes the output, and compares it to the
 receipt — no LLM, no trust, no API key required.
+
+Now uses the ToolReceiptVerifier engine from urp/verify.py.
 """
 
 import hashlib
@@ -24,32 +26,10 @@ from urp.core import (
     Stake,
     ToolReceipt,
 )
+from urp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
 from urp.message import URPMessage
+from urp.verify import ToolReceiptVerifier, VerificationStatus
 
-
-# ---------- Deterministic tool ----------
-
-def compute_fibonacci(n: int) -> dict:
-    """Pure, deterministic Fibonacci computation. No randomness, no external state."""
-    a, b = 0, 1
-    for _ in range(n):
-        a, b = b, a + b
-    return {"input": n, "result": a, "algorithm": "iterative"}
-
-
-# ---------- Verification ----------
-
-def verify_tool_receipt(receipt: ToolReceipt) -> bool:
-    """Re-run the tool and compare the output hash to the receipt.
-
-    Returns True if the replayed output matches the recorded hash.
-    """
-    replayed_output = compute_fibonacci(receipt.input_inline["n"])
-    replayed_hash = ToolReceipt.make_output_hash(replayed_output)
-    return replayed_hash == receipt.output_sha256
-
-
-# ---------- Demo ----------
 
 def main() -> None:
     print("=" * 60)
@@ -57,9 +37,16 @@ def main() -> None:
     print("  No LLM, no API key — pure replay verification")
     print("=" * 60)
 
+    # Set up the verifier with all built-in tools
+    verifier = ToolReceiptVerifier()
+    for name, fn in BUILTIN_TOOLS.items():
+        verifier.register(name, fn)
+
+    print(f"\n  Registered tools: {', '.join(verifier.registered_tools)}")
+
     # 1. Run the tool
     inputs = {"n": 10}
-    output = compute_fibonacci(10)
+    output = compute_fibonacci(inputs)
     print(f"\nTool call: compute_fibonacci({inputs['n']})")
     print(f"Result: {output}")
 
@@ -101,12 +88,12 @@ def main() -> None:
     print("\n--- Claim with ToolReceipt ---")
     print(msg.to_json(compact=False))
 
-    # 5. Verify by replay
-    print("\n--- Verification by Replay ---")
-    print("Re-running compute_fibonacci with recorded inputs...")
-    result = verify_tool_receipt(receipt)
-    print(f"Output hash match: {result}")
-    print(f"Verdict: {'VERIFIED' if result else 'TAMPERED'}")
+    # 5. Verify by replay using ToolReceiptVerifier
+    print("\n--- Verification by Replay (ToolReceiptVerifier) ---")
+    result = verifier.verify(receipt)
+    print(f"Status: {result.status.value}")
+    print(f"Detail: {result.detail}")
+    print(f"Verdict: {'VERIFIED' if result.status == VerificationStatus.VERIFIED_EXACT else 'FAILED'}")
 
     # 6. Tamper with the receipt and verify again
     print("\n--- Tampering Detection ---")
@@ -127,9 +114,10 @@ def main() -> None:
         output_inline={"input": 10, "result": 99, "algorithm": "iterative"},
         output_sha256=ToolReceipt.make_output_hash({"input": 10, "result": 99, "algorithm": "iterative"}),
     )
-    tampered_result = verify_tool_receipt(tampered_receipt)
-    print(f"Output hash match: {tampered_result}")
-    print(f"Verdict: {'VERIFIED' if tampered_result else 'TAMPERED — replay detected wrong output'}")
+    tampered_result = verifier.verify(tampered_receipt)
+    print(f"Status: {tampered_result.status.value}")
+    print(f"Detail: {tampered_result.detail}")
+    print(f"Verdict: {'VERIFIED' if tampered_result.status == VerificationStatus.VERIFIED_EXACT else 'TAMPERED — replay detected wrong output'}")
 
     # 7. Summary
     print(f"\n{'=' * 60}")
