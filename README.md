@@ -111,6 +111,8 @@ llm = OpenAIAdapter()  # defaults to gpt-4o-mini
 
 ## Web Interface
 
+**Live demo:** [https://urp-core-production.up.railway.app](https://urp-core-production.up.railway.app)
+
 A browser-based interface streams simulation progress in real time using Server-Sent Events. Three scenarios run back to back — easy claim, contested claim, and false claim — showing the full claim lifecycle with live balance updates.
 
 ```bash
@@ -122,6 +124,8 @@ python server.py
 Open [http://localhost:8000](http://localhost:8000) in your browser and click **Run Simulation**.
 
 ## Deploy your own
+
+**Live demo:** [https://urp-core-production.up.railway.app](https://urp-core-production.up.railway.app)
 
 ### Manual deploy on Railway
 
