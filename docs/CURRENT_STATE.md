@@ -4,90 +4,87 @@ Snapshot as of 22 March 2026.
 
 ## Status
 
-- **Protocol version:** 0.2.0 public draft (v0.3 features built, tag pending)
-- **Tests:** 59 passing
+- **Protocol version:** 0.3.0 (tagged, released)
+- **Tests:** 196 passing
 - **GitHub issues:** 13 created, all closed
 - **Live URL:** https://urp-core-production.up.railway.app
 - **CI:** GitHub Actions running pytest on push and PR
+- **v0.4 features:** All implemented (MCP adapter, JWS signing, batch verification, capability endpoint)
 
-## Protocol Types
+## Module Map
 
-| Type | Module | Purpose |
-|------|--------|---------|
-| Claim | urp/core.py | Atomic assertion or request with proof reference, stake, and evidence list |
-| ProofReference | urp/core.py | Citation pointer (hash + URI + summary + confidence score) |
-| Stake | urp/core.py | Economic commitment attached to claims and challenges |
-| Response | urp/core.py | Accept/challenge/reject decision on a claim |
-| ToolReceipt | urp/core.py | Verifiable record of a tool call with SHA-256 hashes, replay classification, and evidence strength |
-| SettlementMessage | urp/core.py | First-class message recording stake distribution after claim resolution |
-| AgentCapability | urp/core.py | Preflight declaration of what an agent can verify, with stake policy and evidence requirements |
-| AgentIdentity | urp/core.py | Agent identity (id, name, version) |
-| StakePolicy | urp/core.py | Stake requirements for incoming claims |
-| JWSSignature | urp/core.py | JWS signature block for future signing support |
-| URPMessage | urp/message.py | Versioned envelope wrapping any protocol payload |
+| Module | Purpose |
+|--------|---------|
+| `urp/core.py` | All protocol data types: Claim, ProofReference, Stake, Response, ToolReceipt, SettlementMessage, AgentCapability, JWSSignature, and all enums |
+| `urp/message.py` | URPMessage envelope with protocol versioning (PROTOCOL_VERSION = "0.3.0") |
+| `urp/verify.py` | ToolReceiptVerifier — registry-based replay verification engine with classification validation, batch verification via verify_claim() |
+| `urp/deterministic_tools.py` | 4 built-in pure functions: compute_fibonacci, compute_factorial, compute_sha256, math_eval |
+| `urp/signing.py` | Ed25519 JWS signing: key generation, detached signatures, receipt signing with evidence strength escalation, message envelope signing |
+| `urp/mcp_adapter.py` | MCP integration: wrap_tool_call, wrap_mcp_tool_result (receipt in _meta), extract_tool_receipt |
+| `urp/llm.py` | LLMAdapter ABC + GroqAdapter, OllamaAdapter, OpenAIAdapter |
+| `urp/llm_agents.py` | ResearcherLLM, ChallengerLLM, VerifierLLM — shared LLM-backed agent classes |
+| `urp/agent.py` | Abstract Agent base class and reference implementations |
+| `urp/ledger.py` | In-memory balance tracker for deposits, withdrawals, settlement transfers |
+| `urp/knowledge_base.py` | KnowledgeBase ABC and InMemoryKnowledgeBase |
+| `urp/transport.py` | WebSocket server/client for networked simulations |
+| `server.py` | FastAPI server: /run-simulation (LLM), /run-deterministic (no API key, 2 scenarios), /.well-known/urp-capability.json, /debug-env (gated) |
 
-## Enums
+## Endpoints
 
-| Enum | Values |
-|------|--------|
-| ClaimType | assertion, request |
-| Decision | accept, challenge, reject, expired |
-| SettlementOutcome | accepted, rejected, expired |
-| EvidenceStrength | unsigned, caller_signed, provider_signed, dual_signed |
-| NondeterminismClass | deterministic, time_dependent, randomized, model_based, environment_dependent |
-| SideEffectClass | none, read_only, external_write, irreversible |
-| ReplayClass | none, weak, stateful, strong, witness_only |
-| ClaimKind | factual_assertion, tool_output, code_verification, data_integrity, provenance_check, policy_compliance, safety_check |
-| EvidenceType | proof_reference, tool_receipt |
+| Path | Method | Auth | Description |
+|------|--------|------|-------------|
+| `/` | GET | None | Web UI with "Run Simulation" and "Deterministic Demo" buttons |
+| `/run-simulation` | GET | GROQ_API_KEY | LLM-backed simulation via SSE (3 scenarios or custom claim) |
+| `/run-deterministic` | GET | None | Deterministic verification via SSE: verified claim + tampered receipt detection |
+| `/.well-known/urp-capability.json` | GET | None | AgentCapability declaration (JSON) |
+| `/debug-env` | GET | DEBUG=true | Environment diagnostics (gated, returns 404 otherwise) |
 
-## LLM Adapters
+## Security Hardening
 
-| Adapter | Provider | API Key Env Var | Default Model | Dependencies |
-|---------|----------|-----------------|---------------|--------------|
-| GroqAdapter | Groq | GROQ_API_KEY | llama-3.3-70b-versatile | groq package |
-| OllamaAdapter | Ollama (local) | OLLAMA_HOST (optional) | llama3 | stdlib urllib |
-| OpenAIAdapter | OpenAI | OPENAI_API_KEY | gpt-4o-mini | stdlib urllib |
+- `/debug-env` gated behind `DEBUG=true` env var
+- Max 5 concurrent simulations (HTTP 429 on overflow)
+- Max claim length 2000 chars (HTTP 400 on overflow)
+- CORS still allow_origins=["*"] (acceptable for demo)
 
-## Shared Agent Classes (urp/llm_agents.py)
+## Verification Engine
 
-| Class | Role | Returns |
-|-------|------|---------|
-| ResearcherLLM | Creates claims with ToolReceipt evidence and dynamic confidence score | Claim |
-| ChallengerLLM | Evaluates claims, decides accept or challenge | (Response, reason_string) |
-| VerifierLLM | Makes final accept/reject decision | (Response, reason_string) |
+- **ToolReceiptVerifier** with 7 verification statuses: VERIFIED_EXACT, OUTPUT_HASH_MISMATCH, INPUT_HASH_MISMATCH, NOT_REPLAYABLE, TOOL_NOT_REGISTERED, REPLAY_ERROR, CLASSIFICATION_INVALID
+- **6 classification validation rules** rejecting contradictory metadata (DETERMINISTIC+WEAK, MODEL_BASED+STRONG, RANDOMIZED+STRONG, TIME_DEPENDENT+STRONG, ENVIRONMENT_DEPENDENT+STRONG, side_effect≠NONE+STRONG)
+- **Batch verification** via verify_claim() — verifies all receipts in a Claim.evidence list
+- **9 hash test vectors** pinned for serialisation stability
+- Strict and non-strict modes
 
-## Simulations
+## JWS Signing
 
-| File | Description | API Key Required |
-|------|-------------|-----------------|
-| simple_simulation.py | Single-process claim/challenge/verify loop | No |
-| deterministic_demo.py | Replayable ToolReceipt verification with tampering detection | No |
-| llm_simulation.py | Three-scenario LLM-backed simulation (accept, challenge, reject) | GROQ_API_KEY |
-| ollama_demo.py | Single-scenario local model demo | Ollama running |
-| networked_simulation.py | Multi-agent WebSocket simulation | No |
+- Ed25519 key generation via jwcrypto
+- Detached JWS signatures (payload not embedded)
+- Receipt signing with automatic evidence strength escalation (UNSIGNED → CALLER_SIGNED → DUAL_SIGNED)
+- Message envelope signing
+- Canonical JSON: sorted keys, compact separators (RFC 8785 JCS deferred to v0.5)
 
-## Web Server (server.py)
+## MCP Integration
 
-- FastAPI with SSE streaming
-- Custom claim input via query parameter
-- Background task + queue pattern with 5-second heartbeat for Railway proxy
-- GROQ_API_KEY checked at request time, not startup
-- Debug endpoint at /debug-env
-- Deployed via Dockerfile on Railway
+- `wrap_tool_call()` — convenience function to create ToolReceipts from any tool invocation
+- `wrap_mcp_tool_result()` — wraps tool output into MCP CallToolResult shape with receipt in `_meta["urp:tool_receipt"]`
+- `extract_tool_receipt()` — extracts receipt from MCP _meta on the client side
+- End-to-end: wrap → extract → verify works with ToolReceiptVerifier
 
-## Specifications
+## Tests by Module
 
-| File | Content |
-|------|---------|
-| SPEC.md | Protocol spec with message types, interaction flow, error codes, evidence types, signing model, transport adapters, AgentCapability |
-| SPEC-v2.md | JSON schemas for all message types |
-| ROADMAP.md | v0.2 current state, v0.3 planned, v0.4 future direction |
-| CHANGELOG.md | Detailed changelog for v0.2.0 and v0.3.0 |
+| File | Count | What it covers |
+|------|-------|----------------|
+| test_core.py | 38 | All protocol types, enums, serialisation round-trips |
+| test_verify.py | 55 | Verification engine, hash vectors, classification rules, batch verification |
+| test_signing.py | 33 | Key generation, detached JWS, receipt signing, envelope signing, evidence escalation |
+| test_mcp_adapter.py | 25 | wrap_tool_call, wrap_mcp_tool_result, extract, end-to-end verify |
+| test_server.py | 24 | Debug-env gating, claim length, deterministic endpoint, capability endpoint |
+| test_llm_agents.py | 17 | LLM agent parsing, confidence scoring, adapter constructors |
+| test_message.py | 4 | URPMessage versioning and round-trip |
+| **Total** | **196** | |
 
-## Next Build Targets (priority order)
+## Next Build Targets
 
-1. **EvidenceBundle** — composite evidence type grouping multiple ToolReceipts and signed attestations
-2. **Structured claim format** — replace free-text statements with machine-parseable propositions
-3. **JWS signing implementation** — implement the signing model stubbed in SPEC.md
-4. **Machine-native reasoning layer** — binary-efficient message encoding for high-throughput agent communication
-5. **Privacy and encryption** — selective disclosure, zero-knowledge proof integration
+1. **Structured claim format** (v0.5) — replace free-text statements with machine-parseable propositions
+2. **A2A adapter** — map AgentCapability to/from A2A agent cards
+3. **RFC 8785 (JCS) canonicalization** — align with A2A signing requirements
+4. **EvidenceBundle** — composite evidence grouping multiple receipts and attestations

@@ -44,33 +44,35 @@ What is complete:
 
 ## v0.4 — Next (Interop + Signing)
 
-**Design principle for v0.4:** Make URP useful outside the demo. Prove it works with real tool-calling flows and signed messages.
+## v0.4 — Previous (Interop + Signing)
 
-### MCP integration
+What is complete:
 
-- **MCP transport adapter** — Carry URP ToolReceipts as `_meta` on MCP `ToolResultContent`. An MCP server wraps tool call results in ToolReceipts; an MCP client verifies them. ([#7](https://github.com/Spudbe/urp-core/issues/7))
-- **"Wrap any tool call" utility** — A reusable function that takes a tool name, inputs, outputs, and classification, and returns a ToolReceipt. Makes it trivial for MCP server authors to add URP receipts.
+- **MCP transport adapter** — `urp/mcp_adapter.py`. Carries URP ToolReceipts as `_meta["urp:tool_receipt"]` on MCP `CallToolResult`. `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`. ([#7](https://github.com/Spudbe/urp-core/issues/7))
+- **Signed ToolReceipts** — Ed25519 JWS signing over canonical receipt JSON via `urp/signing.py`. `EvidenceStrength.CALLER_SIGNED` and `PROVIDER_SIGNED` now exercised with automatic escalation to `DUAL_SIGNED`.
+- **Signed URPMessage envelopes** — Detached JWS signatures on the wire envelope using `sign_message_envelope()` / `verify_message_envelope()`.
+- **Key management** — `generate_ed25519_keypair()` for Ed25519 key generation. No full PKI — just enough for demo signing and local verification.
+- **Batch verification** — `verify_claim()` verifies all receipts in a `Claim.evidence` list, returns `BatchVerificationResult` summary.
 
-### JWS signing
+What is deferred:
 
-- **Signed ToolReceipts** — Implement Ed25519 JWS signing over canonical receipt JSON. `EvidenceStrength.CALLER_SIGNED` and `PROVIDER_SIGNED` become exercised, not just enum values.
-- **Signed URPMessage envelopes** — Detached JWS signatures on the wire envelope, using the JWSSignature type already in `urp/core.py`.
-- **Key management** — Minimal key generation and verification utilities. No full PKI — just enough for demo signing and local verification.
+- **Remote tool replay** — `ToolReceiptVerifier` for HTTP-callable tools. Deferred to v0.5 (adds HTTP complexity, not needed for credibility story).
 
-### Verifier improvements
+## v0.5 — Next (Structured Claims + Canonicalization)
+
+**Design principle for v0.5:** Make claims machine-parseable and align canonicalization with industry standards.
+
+- **Structured claim format** — Replace free-text claim statements with machine-parseable propositions. Claims become structured logic, not natural language strings. Mechanically matchable to ToolReceipt evidence.
+
+- **Canonicalization alignment** — Adopt RFC 8785 (JCS) for canonical JSON, aligning with A2A's canonicalization requirements for signed agent cards. Replace current sorted-key compact JSON with JCS.
 
 - **Remote tool replay** — `ToolReceiptVerifier` supports HTTP-callable tools (not just local Python functions). Register a URL + expected schema, verifier calls it and compares.
-- **Batch verification** — Verify all receipts in a `Claim.evidence` list in one call, returning a summary result.
-
-## v0.5 — Future Direction
-
-- **EvidenceBundle** — Composite evidence type that groups multiple ToolReceipts, external document hashes, and signed attestations into a single verifiable package attached to a claim.
 
 - **A2A adapter** — Map URP AgentCapability to/from A2A agent cards. Route claims to capable agents using A2A discovery.
 
-- **Structured claim format** — Replace free-text claim statements with machine-parseable propositions. Claims become structured logic, not natural language strings.
+## v0.6 — Future Direction
 
-- **Canonicalization alignment** — Adopt RFC 8785 (JCS) for canonical JSON, aligning with A2A's canonicalization requirements for signed agent cards.
+- **EvidenceBundle** — Composite evidence type that groups multiple ToolReceipts, external document hashes, and signed attestations into a single verifiable package attached to a claim.
 
 - **Privacy and encryption** — Selective disclosure of proof details. Zero-knowledge proof integration for sensitive claims.
 
