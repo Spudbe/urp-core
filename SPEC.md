@@ -80,6 +80,10 @@ The following areas are recognised as necessary for a complete protocol but are 
 | CHALLENGE_EXPIRED | The challenge window closed before a response was submitted. |
 | UNSUPPORTED_CLAIM_TYPE | The claim type is not handled by the receiving agent. |
 
+## Evidence Types
+
+URP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. v0.2 ships only ProofReference. v0.3 will introduce ToolReceipt as the first concrete EvidenceType — a signed record of a tool call (name, inputs, output, timestamp) that a challenger can verify by replay or signature. Claims backed by a ToolReceipt are verifiable. Claims backed only by a ProofReference are assertions. URP treats these differently in the challenge/verify flow.
+
 ## Signing Model (stub)
 
 URP messages SHOULD be signed by the sending agent to ensure authenticity and tamper-evidence. The intended signing model is JSON Web Signatures (JWS) as defined in RFC 7515. Each URPMessage envelope should carry an optional signature field containing a detached JWS signature over the canonical JSON serialisation of the payload. Key management, DID integration, and signature verification workflows are deferred to v0.3. Implementations that do not yet support signing MUST NOT silently accept unsigned messages in security-sensitive contexts.

@@ -27,6 +27,8 @@ What is not yet implemented:
 
 ## v0.3 — Planned
 
+**Design principle for v0.3:** URP constrains its verification model to claims that can be verified without asking another LLM. ToolReceipt is the first concrete implementation of this principle.
+
 ### Protocol additions
 
 - **SettlementMessage** — First-class message type for explicit fund-transfer records. Fields: claim_id, outcome (accepted/rejected/expired), researcher_delta, challenger_delta, timestamp. Makes settlement auditable and replayable. ([#5](https://github.com/Spudbe/urp-core/issues/5))

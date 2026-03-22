@@ -24,7 +24,7 @@ This gap matters in enterprise and regulated environments. The EU AI Act require
 
 ## The Core Claim
 
-URP is built on the thesis that structured economic commitment to correctness produces more reliable agent outputs than trust-based or reputation-only systems. When an agent must lock value against a claim and risks losing that value if the claim is successfully challenged, the agent has a direct incentive to provide accurate information and to attach evidence that can withstand verification. This is not a novel idea — it is how prediction markets, security deposits, and dispute bonds work. URP applies the same mechanism to inter-agent communication, where the "claim" is a structured assertion and the "stake" is a protocol-level credit. The challenge mechanism ensures that incorrect claims can be contested by any participating agent, not just the original requester, creating a distributed verification pressure that scales with the number of agents in the network.
+URP is built on the thesis that structured accountability produces more reliable agent outputs than trust-based systems. When an agent must back a claim with verifiable evidence — a tool receipt, a signed computation, a reproducible output — and risks losing staked value if the evidence is successfully challenged, the agent has a direct incentive to provide accurate, grounded claims. This is not novel: it is how audit trails, signed receipts, and dispute bonds work in traditional systems. URP applies the same mechanism to inter-agent communication, targeting claims that can be verified by replay, signature, or reproducible output — not claims that require trusting another LLM's opinion.
 
 ## Commercial Optionality
 
