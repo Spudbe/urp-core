@@ -70,6 +70,18 @@ Challenger: 1.00 URC
 Verifier: 1.00 URC
 ```
 
+## LLM-Backed Demo
+
+An optional simulation replaces the hard-coded agents with LLM-backed agents that use the Groq API to generate real reasoning. Each agent (Researcher, Challenger, Verifier) calls Llama 3 via Groq to produce claims, evaluate evidence, and make decisions, exchanging full URPMessage envelopes throughout.
+
+```bash
+pip install groq
+export GROQ_API_KEY=your_key_here
+python simulations/llm_simulation.py
+```
+
+`GROQ_API_KEY` is required. The demo will not run without it. Get a free key at [console.groq.com](https://console.groq.com).
+
 ## Repository Structure
 
 ```
