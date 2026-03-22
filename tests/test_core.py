@@ -3,6 +3,7 @@ from urp.core import (
     ProofReference, Stake, Claim, ClaimType, Decision, ToolReceipt,
     EvidenceStrength, NondeterminismClass, SideEffectClass, ReplayClass,
     SettlementMessage, SettlementOutcome,
+    ClaimKind, EvidenceType, AgentIdentity, StakePolicy, JWSSignature, AgentCapability,
 )
 
 
@@ -290,3 +291,95 @@ class TestSettlementMessage:
         sm = self._make_settlement(notes="Challenger won")
         d = sm.to_dict()
         assert d["notes"] == "Challenger won"
+
+
+class TestClaimKindEnum:
+    def test_all_values(self):
+        assert ClaimKind.FACTUAL_ASSERTION.value == "factual_assertion"
+        assert ClaimKind.TOOL_OUTPUT.value == "tool_output"
+        assert ClaimKind.CODE_VERIFICATION.value == "code_verification"
+        assert ClaimKind.DATA_INTEGRITY.value == "data_integrity"
+        assert ClaimKind.PROVENANCE_CHECK.value == "provenance_check"
+        assert ClaimKind.POLICY_COMPLIANCE.value == "policy_compliance"
+        assert ClaimKind.SAFETY_CHECK.value == "safety_check"
+
+
+class TestEvidenceTypeEnum:
+    def test_all_values(self):
+        assert EvidenceType.PROOF_REFERENCE.value == "proof_reference"
+        assert EvidenceType.TOOL_RECEIPT.value == "tool_receipt"
+
+
+class TestStakePolicy:
+    def test_defaults(self):
+        sp = StakePolicy()
+        assert sp.required is False
+        assert sp.minimum_amount == 0.0
+        assert sp.currency == "credits"
+
+
+class TestJWSSignature:
+    def test_minimal(self):
+        sig = JWSSignature(protected="eyJ0eXAiOiJKV1MifQ", signature="abc123")
+        assert sig.protected == "eyJ0eXAiOiJKV1MifQ"
+        assert sig.signature == "abc123"
+        assert sig.header is None
+        d = sig.to_dict()
+        assert "header" not in d
+
+
+def _make_capability(**overrides) -> AgentCapability:
+    defaults = {
+        "protocol_version": "0.3.0",
+        "agent": AgentIdentity(id="a-1", name="TestAgent", version="1.0"),
+        "supported_claim_types": [ClaimType.ASSERTION],
+        "supported_claim_kinds": [ClaimKind.FACTUAL_ASSERTION],
+        "accepted_evidence_types": [EvidenceType.TOOL_RECEIPT],
+        "minimum_evidence_strength": EvidenceStrength.UNSIGNED,
+        "stake_policy": StakePolicy(),
+        "compatible_protocol_versions": ["0.3.0"],
+    }
+    defaults.update(overrides)
+    return AgentCapability(**defaults)
+
+
+class TestAgentCapability:
+    def test_minimal_valid(self):
+        cap = _make_capability()
+        assert cap.protocol_version == "0.3.0"
+        assert cap.agent.name == "TestAgent"
+        assert cap.supported_claim_kinds == [ClaimKind.FACTUAL_ASSERTION]
+        d = cap.to_dict()
+        reconstructed = AgentCapability.from_dict(d)
+        assert reconstructed.agent.id == "a-1"
+        assert reconstructed.supported_claim_types == [ClaimType.ASSERTION]
+
+    def test_with_optional_fields(self):
+        cap = _make_capability(
+            expires_at="2026-12-31T23:59:59Z",
+            refresh_url="https://example.com/refresh",
+            metadata={"region": "eu-west-1"},
+        )
+        d = cap.to_dict()
+        assert d["expires_at"] == "2026-12-31T23:59:59Z"
+        assert d["refresh_url"] == "https://example.com/refresh"
+        assert d["metadata"]["region"] == "eu-west-1"
+        reconstructed = AgentCapability.from_dict(d)
+        assert reconstructed.expires_at == "2026-12-31T23:59:59Z"
+        assert reconstructed.metadata == {"region": "eu-west-1"}
+
+    def test_rejects_empty_supported_claim_types(self):
+        with pytest.raises(ValueError, match="supported_claim_types"):
+            _make_capability(supported_claim_types=[])
+
+    def test_rejects_empty_supported_claim_kinds(self):
+        with pytest.raises(ValueError, match="supported_claim_kinds"):
+            _make_capability(supported_claim_kinds=[])
+
+    def test_rejects_empty_accepted_evidence_types(self):
+        with pytest.raises(ValueError, match="accepted_evidence_types"):
+            _make_capability(accepted_evidence_types=[])
+
+    def test_rejects_empty_compatible_protocol_versions(self):
+        with pytest.raises(ValueError, match="compatible_protocol_versions"):
+            _make_capability(compatible_protocol_versions=[])

@@ -198,6 +198,61 @@
 }
 ```
 
+### 2.7 AgentCapability
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URP AgentCapability",
+  "description": "Preflight declaration of what an agent can verify. Used for routing, not settlement.",
+  "type": "object",
+  "required": ["protocol_version", "agent", "supported_claim_types", "supported_claim_kinds", "accepted_evidence_types", "minimum_evidence_strength", "stake_policy", "compatible_protocol_versions"],
+  "properties": {
+    "protocol_version": { "type": "string", "description": "URP protocol version this declaration targets." },
+    "agent": {
+      "type": "object",
+      "required": ["id", "name", "version"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "supported_claim_types": { "type": "array", "items": { "type": "string", "enum": ["assertion", "request"] }, "minItems": 1 },
+    "supported_claim_kinds": { "type": "array", "items": { "type": "string", "enum": ["factual_assertion", "tool_output", "code_verification", "data_integrity", "provenance_check", "policy_compliance", "safety_check"] }, "minItems": 1 },
+    "accepted_evidence_types": { "type": "array", "items": { "type": "string", "enum": ["proof_reference", "tool_receipt"] }, "minItems": 1 },
+    "minimum_evidence_strength": { "type": "string", "enum": ["unsigned", "caller_signed", "provider_signed", "dual_signed"] },
+    "stake_policy": {
+      "type": "object",
+      "properties": {
+        "required": { "type": "boolean", "default": false },
+        "minimum_amount": { "type": "number", "minimum": 0, "default": 0.0 },
+        "currency": { "type": "string", "default": "credits" }
+      },
+      "additionalProperties": false
+    },
+    "compatible_protocol_versions": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "expires_at": { "type": ["string", "null"], "format": "date-time" },
+    "refresh_url": { "type": ["string", "null"], "format": "uri" },
+    "signatures": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "required": ["protected", "signature"],
+        "properties": {
+          "protected": { "type": "string" },
+          "signature": { "type": "string" },
+          "header": { "type": ["object", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": { "type": ["object", "null"] }
+  },
+  "additionalProperties": false
+}
+```
+
 ## 3. Out of Scope for v0.2
 
 The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.

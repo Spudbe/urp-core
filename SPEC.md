@@ -194,3 +194,92 @@ This adapter is not yet implemented. It is described here to establish the inten
 URP messages can also be carried over the Agent-to-Agent Protocol (A2A) as task artifacts. A URP claim becomes an A2A task; the response and settlement become task artifacts returned by the delegated agent. A2A's signed agent cards can carry AgentCapability declarations, enabling capability discovery before claim submission.
 
 This adapter is not yet implemented.
+
+## AgentCapability
+
+AgentCapability is a preflight declaration that lets an agent advertise what kinds of claims it can verify, what evidence it accepts, and what stake policy it enforces. It is used for routing — a sender can check an agent's capability before submitting a claim, avoiding wasted stakes on agents that cannot handle the claim type.
+
+AgentCapability is not part of claim settlement. It is a discovery mechanism that aligns with A2A agent discovery (where signed agent cards declare capabilities) without coupling URP to A2A transport.
+
+### ClaimType vs ClaimKind
+
+**ClaimType** is the protocol-level intent: `assertion` (stating a fact) or `request` (asking for data/action). It controls how the protocol handles the message.
+
+**ClaimKind** is the routable verification category: what domain the claim belongs to. An agent that can verify `tool_output` claims may not be able to verify `policy_compliance` claims. ClaimKind enables routing without overloading ClaimType.
+
+### ClaimKind
+
+| Value | Description |
+|-------|-------------|
+| factual_assertion | A claim about a fact that can be checked against reference data. |
+| tool_output | A claim backed by the output of a tool call. |
+| code_verification | A claim about code correctness (tests pass, no vulnerabilities). |
+| data_integrity | A claim about data completeness, consistency, or format. |
+| provenance_check | A claim about the origin or chain of custody of data. |
+| policy_compliance | A claim that an action or output meets a specific policy. |
+| safety_check | A claim that content is safe or meets safety criteria. |
+
+### EvidenceType
+
+| Value | Description |
+|-------|-------------|
+| proof_reference | A ProofReference pointer (hash + URI + summary). |
+| tool_receipt | A ToolReceipt with verifiable inputs, outputs, and hashes. |
+
+### AgentIdentity
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Unique identifier for the agent. |
+| name | string | Human-readable name. |
+| version | string | Agent software version string. |
+
+### StakePolicy
+
+| Field | Type | Description |
+|-------|------|-------------|
+| required | bool | Whether a stake must be attached (default false). |
+| minimum_amount | float | Minimum stake amount accepted (default 0.0). |
+| currency | string | Currency unit for stakes (default "credits"). |
+
+### JWSSignature
+
+| Field | Type | Description |
+|-------|------|-------------|
+| protected | string | Base64url-encoded protected header. |
+| signature | string | Base64url-encoded signature value. |
+| header | object or null | Optional unprotected header parameters. |
+
+### AgentCapability Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| protocol_version | string | URP protocol version this declaration targets. |
+| agent | AgentIdentity | Identity of the declaring agent. |
+| supported_claim_types | list[ClaimType] | ClaimType values this agent handles. |
+| supported_claim_kinds | list[ClaimKind] | ClaimKind values this agent can verify. |
+| accepted_evidence_types | list[EvidenceType] | EvidenceType values this agent accepts. |
+| minimum_evidence_strength | EvidenceStrength | Weakest evidence strength this agent will consider. |
+| stake_policy | StakePolicy | Stake requirements for incoming claims. |
+| compatible_protocol_versions | list[string] | Protocol versions this agent supports. |
+| expires_at | string or null | Optional ISO 8601 expiry timestamp. |
+| refresh_url | string or null | Optional URL to fetch an updated declaration. |
+| signatures | list[JWSSignature] or null | Optional JWS signatures over this declaration. |
+| metadata | object or null | Optional provider-specific metadata. |
+
+All list fields (supported_claim_types, supported_claim_kinds, accepted_evidence_types, compatible_protocol_versions) must contain at least one element.
+
+### Example
+
+```json
+{
+  "protocol_version": "0.3.0",
+  "agent": { "id": "verifier-001", "name": "FactChecker", "version": "1.0.0" },
+  "supported_claim_types": ["assertion"],
+  "supported_claim_kinds": ["factual_assertion", "tool_output"],
+  "accepted_evidence_types": ["tool_receipt"],
+  "minimum_evidence_strength": "unsigned",
+  "stake_policy": { "required": true, "minimum_amount": 0.1, "currency": "URC" },
+  "compatible_protocol_versions": ["0.2.0", "0.3.0"]
+}
+```

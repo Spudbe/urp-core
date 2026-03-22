@@ -64,6 +64,23 @@ class ReplayClass(Enum):
     WITNESS_ONLY = "witness_only"
 
 
+class ClaimKind(Enum):
+    """Routable verification category for claims."""
+    FACTUAL_ASSERTION = "factual_assertion"
+    TOOL_OUTPUT = "tool_output"
+    CODE_VERIFICATION = "code_verification"
+    DATA_INTEGRITY = "data_integrity"
+    PROVENANCE_CHECK = "provenance_check"
+    POLICY_COMPLIANCE = "policy_compliance"
+    SAFETY_CHECK = "safety_check"
+
+
+class EvidenceType(Enum):
+    """Types of evidence a claim can carry."""
+    PROOF_REFERENCE = "proof_reference"
+    TOOL_RECEIPT = "tool_receipt"
+
+
 @dataclass
 class ToolReceipt:
     """A verifiable record of a tool call with strength and replay classification.
@@ -356,4 +373,165 @@ class SettlementMessage:
             challenger_delta=data["challenger_delta"],
             timestamp=data["timestamp"],
             notes=data.get("notes"),
+        )
+
+
+@dataclass
+class AgentIdentity:
+    """Identity of a URP agent.
+
+    Attributes:
+        id: Unique identifier for the agent.
+        name: Human-readable name.
+        version: Agent software version string.
+    """
+    id: str
+    name: str
+    version: str
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "name": self.name, "version": self.version}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> AgentIdentity:
+        return cls(id=data["id"], name=data["name"], version=data["version"])
+
+
+@dataclass
+class StakePolicy:
+    """Stake requirements for claims sent to this agent.
+
+    Attributes:
+        required: Whether a stake must be attached.
+        minimum_amount: Minimum stake amount accepted.
+        currency: Currency unit for stakes.
+    """
+    required: bool = False
+    minimum_amount: float = 0.0
+    currency: str = "credits"
+
+    def to_dict(self) -> dict:
+        return {
+            "required": self.required,
+            "minimum_amount": self.minimum_amount,
+            "currency": self.currency,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> StakePolicy:
+        return cls(
+            required=data.get("required", False),
+            minimum_amount=data.get("minimum_amount", 0.0),
+            currency=data.get("currency", "credits"),
+        )
+
+
+@dataclass
+class JWSSignature:
+    """A JWS signature block.
+
+    Attributes:
+        protected: Base64url-encoded protected header.
+        signature: Base64url-encoded signature value.
+        header: Optional unprotected header parameters.
+    """
+    protected: str
+    signature: str
+    header: Optional[dict] = None
+
+    def to_dict(self) -> dict:
+        d: dict = {"protected": self.protected, "signature": self.signature}
+        if self.header is not None:
+            d["header"] = self.header
+        return d
+
+    @classmethod
+    def from_dict(cls, data: dict) -> JWSSignature:
+        return cls(
+            protected=data["protected"],
+            signature=data["signature"],
+            header=data.get("header"),
+        )
+
+
+@dataclass
+class AgentCapability:
+    """Preflight declaration of what an agent can verify.
+
+    Used for routing claims to capable agents before submission. Not part of
+    claim settlement — this is a discovery/preflight mechanism.
+
+    Attributes:
+        protocol_version: URP protocol version this declaration targets.
+        agent: Identity of the declaring agent.
+        supported_claim_types: ClaimType values this agent handles (assertion, request).
+        supported_claim_kinds: ClaimKind values this agent can verify.
+        accepted_evidence_types: EvidenceType values this agent accepts.
+        minimum_evidence_strength: Weakest EvidenceStrength this agent will consider.
+        stake_policy: Stake requirements for incoming claims.
+        compatible_protocol_versions: Protocol versions this agent supports.
+        expires_at: Optional ISO 8601 expiry timestamp for this declaration.
+        refresh_url: Optional URL to fetch an updated declaration.
+        signatures: Optional list of JWS signatures over this declaration.
+        metadata: Optional provider-specific metadata.
+    """
+    protocol_version: str
+    agent: AgentIdentity
+    supported_claim_types: list[ClaimType]
+    supported_claim_kinds: list[ClaimKind]
+    accepted_evidence_types: list[EvidenceType]
+    minimum_evidence_strength: EvidenceStrength
+    stake_policy: StakePolicy
+    compatible_protocol_versions: list[str]
+    expires_at: Optional[str] = None
+    refresh_url: Optional[str] = None
+    signatures: Optional[list[JWSSignature]] = None
+    metadata: Optional[dict] = None
+
+    def __post_init__(self) -> None:
+        if not self.supported_claim_types:
+            raise ValueError("supported_claim_types must not be empty")
+        if not self.supported_claim_kinds:
+            raise ValueError("supported_claim_kinds must not be empty")
+        if not self.accepted_evidence_types:
+            raise ValueError("accepted_evidence_types must not be empty")
+        if not self.compatible_protocol_versions:
+            raise ValueError("compatible_protocol_versions must not be empty")
+
+    def to_dict(self) -> dict:
+        d: dict = {
+            "protocol_version": self.protocol_version,
+            "agent": self.agent.to_dict(),
+            "supported_claim_types": [t.value for t in self.supported_claim_types],
+            "supported_claim_kinds": [k.value for k in self.supported_claim_kinds],
+            "accepted_evidence_types": [e.value for e in self.accepted_evidence_types],
+            "minimum_evidence_strength": self.minimum_evidence_strength.value,
+            "stake_policy": self.stake_policy.to_dict(),
+            "compatible_protocol_versions": self.compatible_protocol_versions,
+        }
+        if self.expires_at is not None:
+            d["expires_at"] = self.expires_at
+        if self.refresh_url is not None:
+            d["refresh_url"] = self.refresh_url
+        if self.signatures is not None:
+            d["signatures"] = [s.to_dict() for s in self.signatures]
+        if self.metadata is not None:
+            d["metadata"] = self.metadata
+        return d
+
+    @classmethod
+    def from_dict(cls, data: dict) -> AgentCapability:
+        return cls(
+            protocol_version=data["protocol_version"],
+            agent=AgentIdentity.from_dict(data["agent"]),
+            supported_claim_types=[ClaimType(v) for v in data["supported_claim_types"]],
+            supported_claim_kinds=[ClaimKind(v) for v in data["supported_claim_kinds"]],
+            accepted_evidence_types=[EvidenceType(v) for v in data["accepted_evidence_types"]],
+            minimum_evidence_strength=EvidenceStrength(data["minimum_evidence_strength"]),
+            stake_policy=StakePolicy.from_dict(data["stake_policy"]),
+            compatible_protocol_versions=data["compatible_protocol_versions"],
+            expires_at=data.get("expires_at"),
+            refresh_url=data.get("refresh_url"),
+            signatures=[JWSSignature.from_dict(s) for s in data["signatures"]] if data.get("signatures") else None,
+            metadata=data.get("metadata"),
         )
