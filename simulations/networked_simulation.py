@@ -31,18 +31,21 @@ async def networked_simulation():
     for name in (researcher.name, challenger.name, verifier.name):
         ledger.deposit(name, 1.0)
 
-    # Researcher sends a claim to Challenger
+    # Researcher creates a claim and sends it to Challenger for evaluation
     claim = researcher.create_claim("What is the boiling point of water at sea level?")
     msg = URPMessage("claim", claim, researcher.name)
     async with AgentClient(researcher.name, "ws://localhost:8002") as client:
-        resp = await client.send(msg)
+        challenger_resp = await client.send(msg)
 
-    # Challenger processes and forwards to Verifier
-    async with AgentClient(challenger.name, "ws://localhost:8003") as client_v:
-        resp2 = await client_v.send(resp)
+    print("Challenger decision:", challenger_resp.payload.decision)
+
+    # Send the original claim to the Verifier for final evaluation
+    async with AgentClient(researcher.name, "ws://localhost:8003") as client_v:
+        verifier_resp = await client_v.send(msg)
 
     # Display the final response
-    print("Final decision payload:", resp2.payload)
+    print("Verifier decision:", verifier_resp.payload.decision)
+    print("Final decision payload:", verifier_resp.payload)
 
 if __name__ == "__main__":
     asyncio.run(networked_simulation())
