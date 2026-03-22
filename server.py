@@ -223,6 +223,15 @@ async def index():
     return HTMLResponse(content=html)
 
 
+@app.get("/debug-env")
+async def debug_env():
+    key = os.getenv("GROQ_API_KEY")
+    return {
+        "GROQ_API_KEY_set": key is not None and len(key) > 0,
+        "GROQ_API_KEY_prefix": key[:4] + "..." if key else None,
+    }
+
+
 @app.get("/run-simulation")
 async def run_simulation(claim: Optional[str] = Query(default=None)):
     return StreamingResponse(
