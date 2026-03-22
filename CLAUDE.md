@@ -2,37 +2,43 @@
 
 ## Project Overview
 
-URP (Universal Reasoning Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/urp-core, current version 0.3.0 (v0.4 features complete).
+URP (Universal Reasoning Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/urp-core, current version 0.3.0 (v0.5 features complete).
 
 ## Architecture
 
-The codebase has eight layers:
+The codebase has ten layers:
 
-**Message layer** — `urp/core.py` and `urp/message.py`. Defines all protocol data types as dataclasses with `to_dict()`/`from_dict()` serialisation. Core types: `Claim`, `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`. `URPMessage` wraps any payload in a versioned envelope.
+**Message layer** — `urp/core.py` and `urp/message.py`. All protocol data types as dataclasses with `to_dict()`/`from_dict()`. Core types: `Claim` (with optional `structured_claim` field), `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`.
 
-**Verification layer** — `urp/verify.py` and `urp/deterministic_tools.py`. `ToolReceiptVerifier` is a registry-based engine that validates classification consistency, replays deterministic tools, and compares output hashes. 7 verification statuses. 6 classification validation rules. `verify_claim()` for batch verification over a Claim's full evidence list. 4 built-in pure functions (fibonacci, factorial, sha256, math_eval).
+**Structured claims layer** — `urp/structured_claim.py` and `urp/claim_verifier.py`. Machine-parseable propositions (ToolOutputEquals, ValueComparison, Compound) with three-valued logic claim-to-evidence matching engine.
 
-**Signing layer** — `urp/signing.py`. Ed25519 JWS signing via jwcrypto. Key generation, detached JWS signatures, receipt signing with evidence strength auto-escalation (UNSIGNED → CALLER_SIGNED → DUAL_SIGNED), message envelope signing. Canonical JSON via sorted keys + compact separators.
+**Verification layer** — `urp/verify.py` and `urp/deterministic_tools.py`. `ToolReceiptVerifier` registry-based engine with 7 verification statuses, 6 classification rules, `verify_claim()` batch verification. 4 built-in pure functions.
 
-**MCP adapter layer** — `urp/mcp_adapter.py`. `wrap_tool_call()` creates ToolReceipts from tool invocations. `wrap_mcp_tool_result()` builds MCP CallToolResult dicts with receipts in `_meta["urp:tool_receipt"]`. `extract_tool_receipt()` recovers receipts on the client side. End-to-end: wrap → extract → verify.
+**Signing layer** — `urp/signing.py`. Ed25519 JWS signing via jwcrypto. Detached signatures, receipt signing with evidence strength auto-escalation, message envelope signing.
 
-**Agent layer** — `urp/agent.py`, `urp/knowledge_base.py`, and `urp/llm_agents.py`. Abstract `Agent` base class and reference implementations. `urp/llm_agents.py` contains `ResearcherLLM`, `ChallengerLLM`, `VerifierLLM` — the shared LLM-backed agent classes used by both `server.py` and simulations.
+**MCP adapter layer** — `urp/mcp_adapter.py`. `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`. End-to-end: wrap → extract → verify.
 
-**Ledger layer** — `urp/ledger.py`. In-memory balance tracker for deposits, withdrawals, and settlement transfers between agents.
+**A2A adapter layer** — `urp/a2a_adapter.py`. `urp_capability_to_a2a_card()` and `a2a_card_to_urp_capability()` for lossless round-trip translation.
 
-**Transport layer** — `urp/transport.py`. WebSocket server/client for networked multi-agent simulations.
+**Agent layer** — `urp/agent.py`, `urp/knowledge_base.py`, and `urp/llm_agents.py`. Abstract `Agent` base, ResearcherLLM, ChallengerLLM, VerifierLLM shared classes.
 
-**LLM adapter layer** — `urp/llm.py`. Abstract `LLMAdapter` base class with three implementations: `GroqAdapter` (Groq API), `OllamaAdapter` (local models via Ollama, stdlib urllib), `OpenAIAdapter` (OpenAI API, stdlib urllib).
+**Ledger layer** — `urp/ledger.py`. In-memory balance tracker.
 
-**Web server** — `server.py`. FastAPI server with SSE streaming. Endpoints: `/run-simulation` (LLM-backed, requires GROQ_API_KEY), `/run-deterministic` (no API key, 2 scenarios: verified + tampered), `/.well-known/urp-capability.json` (AgentCapability discovery), `/debug-env` (gated behind DEBUG=true). Rate limiting (5 concurrent), max claim length (2000 chars). Deployed at https://urp-core-production.up.railway.app.
+**Transport layer** — `urp/transport.py`. WebSocket server/client.
+
+**LLM adapter layer** — `urp/llm.py`. `LLMAdapter` ABC with `GroqAdapter`, `OllamaAdapter`, `OpenAIAdapter`.
+
+**Web server** — `server.py`. FastAPI with SSE. Endpoints: `/run-simulation`, `/run-deterministic`, `/.well-known/urp-capability.json`, `/.well-known/agent-card.json`, `/debug-env`. Rate limiting, max claim length. Deployed at https://urp-core-production.up.railway.app.
 
 ## Current State
 
-**196 passing tests. v0.3.0 tagged. v0.4 features complete. Railway deployed and live.**
+**275+ passing tests. v0.3.0 tagged. v0.4 and v0.5 features complete. Railway deployed and live.**
 
 **v0.3 (released):** ToolReceipt, SettlementMessage, AgentCapability, classification enums, deterministic verification demo, Ollama/OpenAI adapters, centralised LLM agents, security hardening.
 
-**v0.4 (implemented, not yet tagged):** ToolReceiptVerifier with batch verification, JWS signing (Ed25519), MCP adapter (wrap/extract/verify), capability discovery endpoint, hash test vectors, 6 classification validation rules.
+**v0.4 (implemented):** ToolReceiptVerifier with batch verification, JWS signing (Ed25519), MCP adapter (wrap/extract/verify), capability discovery endpoint, hash test vectors, 6 classification validation rules.
+
+**v0.5 (implemented):** StructuredClaim propositions, claim-to-evidence matching engine, A2A adapter (AgentCapability ↔ AgentCard), /.well-known/agent-card.json endpoint, optional structured_claim field on Claim.
 
 ## Engineering Conventions
 
@@ -84,10 +90,10 @@ python server.py
 
 ## Next Priorities
 
-1. Structured claim format — replace free-text statements with machine-parseable propositions (v0.5)
-2. A2A adapter — map AgentCapability to/from A2A agent cards
-3. RFC 8785 (JCS) canonicalization alignment
-4. EvidenceBundle — composite evidence type
+1. RFC 8785 (JCS) canonicalization — align with A2A signing requirements (v0.6)
+2. Claim.structured_claim migration — make StructuredClaim the primary claim format
+3. Sync SPEC.md/SPEC-v2.md with all v0.4-v0.5 implementation details
+4. EvidenceBundle — composite evidence grouping multiple receipts and attestations
 
 ## Provider Notes
 
