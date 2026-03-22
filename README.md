@@ -27,7 +27,7 @@ Where MCP handles tool invocation and A2A handles agent discovery, URP handles c
 
 ## Quick Start
 
-Requires Python 3.10+. No external dependencies.
+Requires Python 3.10+. Install dependencies with `pip install -r requirements.txt`.
 
 ```bash
 git clone https://github.com/Spudbe/urp-core.git
