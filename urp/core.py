@@ -1,6 +1,8 @@
 # urp/core.py
 
 from __future__ import annotations
+import hashlib
+import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -21,6 +23,65 @@ class Decision(Enum):
 
 
 @dataclass
+class ToolReceipt:
+    """A verifiable record of a tool call, suitable for replay verification.
+
+    Attributes:
+        tool_name: Name of the tool that was called.
+        tool_version: Version string of the tool (use "unknown" if not available).
+        inputs: The inputs passed to the tool, must be JSON-serialisable.
+        output: The output returned by the tool, must be JSON-serialisable.
+        timestamp: ISO 8601 UTC timestamp of when the tool was called.
+        signature: Optional JWS signature over the canonical receipt.
+        replay_hash: SHA-256 hash of (tool_name + tool_version + canonical JSON of inputs).
+    """
+    tool_name: str
+    tool_version: str
+    inputs: dict
+    output: dict
+    timestamp: str
+    signature: Optional[str] = None
+    replay_hash: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.replay_hash:
+            self.replay_hash = ToolReceipt.make_replay_hash(
+                self.tool_name, self.tool_version, self.inputs
+            )
+
+    @classmethod
+    def make_replay_hash(cls, tool_name: str, tool_version: str, inputs: dict) -> str:
+        """Compute a deterministic SHA-256 hash for replay verification."""
+        canonical = tool_name + tool_version + json.dumps(inputs, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode()).hexdigest()
+
+    def to_dict(self) -> dict:
+        d = {
+            "tool_name": self.tool_name,
+            "tool_version": self.tool_version,
+            "inputs": self.inputs,
+            "output": self.output,
+            "timestamp": self.timestamp,
+            "replay_hash": self.replay_hash,
+        }
+        if self.signature is not None:
+            d["signature"] = self.signature
+        return d
+
+    @classmethod
+    def from_dict(cls, data: dict) -> ToolReceipt:
+        return cls(
+            tool_name=data["tool_name"],
+            tool_version=data["tool_version"],
+            inputs=data["inputs"],
+            output=data["output"],
+            timestamp=data["timestamp"],
+            signature=data.get("signature"),
+            replay_hash=data.get("replay_hash", ""),
+        )
+
+
+@dataclass
 class ProofReference:
     """
     A pointer to an external proof artifact.
@@ -33,6 +94,7 @@ class ProofReference:
     location: str
     summary: str
     confidence_score: Optional[float] = None
+    evidence: Optional[ToolReceipt] = None
 
     def to_dict(self) -> dict:
         d = {
@@ -42,6 +104,8 @@ class ProofReference:
         }
         if self.confidence_score is not None:
             d["confidence_score"] = self.confidence_score
+        if self.evidence is not None:
+            d["evidence"] = self.evidence.to_dict()
         return d
 
     @classmethod
@@ -51,6 +115,7 @@ class ProofReference:
             location=data["location"],
             summary=data["summary"],
             confidence_score=data.get("confidence_score"),
+            evidence=ToolReceipt.from_dict(data["evidence"]) if data.get("evidence") else None,
         )
 
 

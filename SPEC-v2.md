@@ -146,6 +146,27 @@
 }
 ```
 
+### 2.5 ToolReceipt
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URP ToolReceipt",
+  "description": "A verifiable record of a tool call, suitable for replay verification. The first concrete EvidenceType in URP.",
+  "type": "object",
+  "required": ["tool_name", "tool_version", "inputs", "output", "timestamp", "replay_hash"],
+  "properties": {
+    "tool_name": { "type": "string", "minLength": 1, "description": "Name of the tool that was called." },
+    "tool_version": { "type": "string", "description": "Version string of the tool ('unknown' if not available)." },
+    "inputs": { "type": "object", "description": "Inputs passed to the tool, JSON-serialisable." },
+    "output": { "type": "object", "description": "Output returned by the tool, JSON-serialisable." },
+    "timestamp": { "type": "string", "format": "date-time", "description": "ISO 8601 UTC timestamp of when the tool was called." },
+    "signature": { "type": ["string", "null"], "description": "Optional JWS signature over the canonical receipt. Null until signing is implemented." },
+    "replay_hash": { "type": "string", "description": "SHA-256 hash of (tool_name + tool_version + canonical JSON of inputs) for replay verification." }
+  },
+  "additionalProperties": false
+}
+```
+
 ## 3. Out of Scope for v0.2
 
 The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.

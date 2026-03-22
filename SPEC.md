@@ -82,7 +82,23 @@ The following areas are recognised as necessary for a complete protocol but are 
 
 ## Evidence Types
 
-URP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. v0.2 ships only ProofReference. v0.3 will introduce ToolReceipt as the first concrete EvidenceType — a signed record of a tool call (name, inputs, output, timestamp) that a challenger can verify by replay or signature. Claims backed by a ToolReceipt are verifiable. Claims backed only by a ProofReference are assertions. URP treats these differently in the challenge/verify flow.
+URP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. Claims backed by a ToolReceipt are verifiable. Claims backed only by a ProofReference are assertions. URP treats these differently in the challenge/verify flow.
+
+### ToolReceipt
+
+A ToolReceipt is the first concrete EvidenceType. It records a tool call that a challenger can verify by replay or signature. A ToolReceipt includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| tool_name | string | The name of the tool that was called. |
+| tool_version | string | The version string of the tool; "unknown" if not available. |
+| inputs | object | The inputs passed to the tool, JSON-serialisable. |
+| output | object | The output returned by the tool, JSON-serialisable. |
+| timestamp | string | ISO 8601 UTC timestamp of when the tool was called. |
+| signature | string or null | Optional JWS signature over the canonical receipt; null until signing is implemented. |
+| replay_hash | string | SHA-256 hash of (tool_name + tool_version + canonical JSON of inputs), enabling replay verification. |
+
+A ProofReference may carry an optional `evidence` field containing a ToolReceipt. When present, challengers can verify the claim by replaying the tool call and comparing the output hash, rather than trusting the claiming agent.
 
 ## Signing Model (stub)
 
