@@ -163,9 +163,30 @@ A ToolReceipt is the first concrete EvidenceType. It records a tool call with en
 | evidence_strength | EvidenceStrength | How strongly the receipt is authenticated. |
 | signature | string or null | Optional JWS signature over the canonical receipt; null until signing is implemented. |
 
-## Signing Model (stub)
+## Signing Model
 
-URP messages SHOULD be signed by the sending agent to ensure authenticity and tamper-evidence. The intended signing model is JSON Web Signatures (JWS) as defined in RFC 7515. Each URPMessage envelope should carry an optional signature field containing a detached JWS signature over the canonical JSON serialisation of the payload. Key management, DID integration, and signature verification workflows are deferred to v0.3. Implementations that do not yet support signing MUST NOT silently accept unsigned messages in security-sensitive contexts.
+URP uses Ed25519 detached JWS signatures (RFC 7515) for authentication of ToolReceipts and URPMessage envelopes.
+
+**Algorithm:** Ed25519 only (OKP key type, EdDSA algorithm). Key pairs generated via `generate_ed25519_keypair()`.
+
+**Canonical form:** Payload is canonical JSON: `json.dumps(obj, sort_keys=True, separators=(",", ":"))`. Note: RFC 8785 (JCS) adoption planned for v0.6.
+
+**Detached JWS:** Signatures are detached — the JWS token contains only the protected header and signature, not the payload. The protected header includes `alg: "EdDSA"`, optional `kid`, and `typ` (either `"urp-receipt+jws"` or `"urp-message+jws"`).
+
+**ToolReceipt signing:** `sign_tool_receipt()` signs the canonical JSON of the receipt dict (excluding the `signature` field), stores the JWS in the receipt's `signature` field, and updates `evidence_strength`:
+
+| Before | Signer role | After |
+|--------|-------------|-------|
+| UNSIGNED | caller | CALLER_SIGNED |
+| UNSIGNED | provider | PROVIDER_SIGNED |
+| CALLER_SIGNED | provider | DUAL_SIGNED |
+| PROVIDER_SIGNED | caller | DUAL_SIGNED |
+
+**URPMessage signing:** `sign_message_envelope()` signs the canonical JSON of the full message dict and returns a detached `JWSSignature`. The signature travels alongside the message, not inside it.
+
+**Verification:** `verify_tool_receipt_signature()` and `verify_message_envelope()` reconstruct the canonical payload and verify against a public key.
+
+**Implementation:** `urp/signing.py`. Requires `jwcrypto>=1.5.6`.
 
 ## Transport Adapters
 
