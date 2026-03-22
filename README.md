@@ -82,6 +82,18 @@ python simulations/llm_simulation.py
 
 `GROQ_API_KEY` is required. The demo will not run without it. Get a free key at [console.groq.com](https://console.groq.com).
 
+## Web Interface
+
+A browser-based interface streams simulation progress in real time using Server-Sent Events. Three scenarios run back to back — easy claim, contested claim, and false claim — showing the full claim lifecycle with live balance updates.
+
+```bash
+pip install fastapi uvicorn
+export GROQ_API_KEY=your_key_here
+python server.py
+```
+
+Open [http://localhost:8000](http://localhost:8000) in your browser and click **Run Simulation**.
+
 ## Repository Structure
 
 ```
@@ -89,16 +101,21 @@ urp-core/
 ├── SPEC.md                              # Protocol specification (v1 draft)
 ├── SPEC-v2.md                           # v2 specification with JSON schemas
 ├── README.md                            # This file
+├── server.py                            # FastAPI server with SSE simulation endpoint
+├── static/
+│   └── index.html                       # Browser interface for live simulation
 ├── urp/
 │   ├── __init__.py                      # Package init, exports __version__
 │   ├── core.py                          # Data classes: Claim, ProofReference, Stake, Response
 │   ├── agent.py                         # Agent ABC and reference implementations
 │   ├── knowledge_base.py               # KnowledgeBase ABC, InMemoryKnowledgeBase, get_fact()
 │   ├── ledger.py                        # In-memory balance ledger
+│   ├── llm.py                           # LLM adapter interface and Groq implementation
 │   ├── message.py                       # URPMessage envelope with protocol versioning
 │   └── transport.py                     # WebSocket server/client for networked simulations
 └── simulations/
     ├── simple_simulation.py             # Single-process claim/challenge/verify loop
+    ├── llm_simulation.py                # Three-scenario LLM-backed simulation
     └── networked_simulation.py          # Multi-agent WebSocket simulation
 ```
 

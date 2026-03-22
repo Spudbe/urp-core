@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URP Simulation</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: #111820;
+    --border: #1e2a36;
+    --text: #c8d6e0;
+    --green: #00ff88;
+    --yellow: #ffcc00;
+    --cyan: #00e5ff;
+    --red: #ff4466;
+    --dim: #4a5568;
+    --mono: 'Courier New', Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 24px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1 {
+    color: var(--green);
+    font-size: 20px;
+    font-weight: normal;
+    margin-bottom: 4px;
+  }
+  .subtitle { color: var(--dim); font-size: 12px; margin-bottom: 24px; }
+  .controls { display: flex; gap: 12px; margin-bottom: 24px; }
+  button {
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  button:hover { background: var(--green); color: var(--bg); }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+  button:disabled:hover { background: transparent; color: var(--green); }
+  button.secondary { border-color: var(--dim); color: var(--dim); }
+  button.secondary:hover { background: var(--dim); color: var(--bg); }
+
+  /* Balance tracker */
+  #balances {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  #balances .title { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .balance-row { display: flex; justify-content: space-between; padding: 2px 0; }
+  .balance-row .agent { color: var(--dim); }
+  .balance-row .amount { font-weight: bold; }
+  .balance-row.researcher .agent { color: var(--green); }
+  .balance-row.challenger .agent { color: var(--yellow); }
+  .balance-row.verifier .agent { color: var(--cyan); }
+
+  /* Feed */
+  #feed { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Scenario header */
+  .scenario-header {
+    border-top: 2px solid var(--green);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    margin-top: 12px;
+  }
+  .scenario-header .num { color: var(--green); font-size: 16px; }
+  .scenario-header .query { color: var(--dim); font-size: 12px; margin-top: 4px; }
+
+  /* Step label */
+  .step-label { color: var(--dim); font-size: 12px; padding: 4px 0; }
+  .step-label::before { content: '> '; color: var(--green); }
+
+  /* URP message card */
+  .msg-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .msg-card .header {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  .msg-card.researcher .header { background: rgba(0,255,136,0.08); color: var(--green); }
+  .msg-card.challenger .header { background: rgba(255,204,0,0.08); color: var(--yellow); }
+  .msg-card.verifier .header   { background: rgba(0,229,255,0.08); color: var(--cyan); }
+  .msg-card pre {
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    color: var(--text);
+  }
+
+  /* Settlement */
+  .settlement {
+    background: var(--surface);
+    border-left: 3px solid var(--green);
+    padding: 12px 16px;
+  }
+  .settlement.rejected { border-left-color: var(--red); }
+  .settlement .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .settlement .outcome { font-size: 14px; }
+  .settlement .outcome.accepted { color: var(--green); }
+  .settlement .outcome.rejected { color: var(--red); }
+
+  /* Complete banner */
+  .complete-banner {
+    text-align: center;
+    padding: 16px;
+    color: var(--green);
+    border: 1px solid var(--green);
+    margin-top: 12px;
+  }
+
+  /* Status */
+  #status { color: var(--dim); font-size: 12px; margin-bottom: 16px; min-height: 18px; }
+</style>
+</head>
+<body>
+
+<h1>// URP Simulation</h1>
+<div class="subtitle">Universal Reasoning Protocol — Live Claim Lifecycle</div>
+
+<div class="controls">
+  <button id="btn-run">Run Simulation</button>
+  <button id="btn-clear" class="secondary">Clear</button>
+</div>
+
+<div id="status"></div>
+<div id="balances">
+  <div class="title">Agent Balances</div>
+  <div id="balance-rows"></div>
+</div>
+<div id="feed"></div>
+
+<script>
+const feed = document.getElementById('feed');
+const balancesEl = document.getElementById('balances');
+const balanceRows = document.getElementById('balance-rows');
+const status = document.getElementById('status');
+const btnRun = document.getElementById('btn-run');
+const btnClear = document.getElementById('btn-clear');
+
+let eventSource = null;
+
+function agentClass(name) {
+  if (name.includes('Researcher')) return 'researcher';
+  if (name.includes('Challenger')) return 'challenger';
+  if (name.includes('Verifier'))   return 'verifier';
+  return '';
+}
+
+function updateBalances(balances) {
+  balancesEl.style.display = 'block';
+  balanceRows.innerHTML = '';
+  for (const [name, amount] of Object.entries(balances)) {
+    const row = document.createElement('div');
+    row.className = 'balance-row ' + agentClass(name);
+    row.innerHTML = `<span class="agent">${name}</span><span class="amount">${amount} URC</span>`;
+    balanceRows.appendChild(row);
+  }
+}
+
+function addScenarioHeader(data) {
+  const el = document.createElement('div');
+  el.className = 'scenario-header';
+  el.innerHTML = `<div class="num">Scenario ${data.num}: ${data.title}</div><div class="query">${data.query}</div>`;
+  feed.appendChild(el);
+}
+
+function addStep(data) {
+  const el = document.createElement('div');
+  el.className = 'step-label';
+  el.textContent = `Step ${data.step}: ${data.label}`;
+  feed.appendChild(el);
+}
+
+function addMessage(data) {
+  const role = data.role || agentClass(data.sender);
+  const card = document.createElement('div');
+  card.className = 'msg-card ' + role;
+  card.innerHTML = `<div class="header">${data.sender}</div><pre>${JSON.stringify(data.message, null, 2)}</pre>`;
+  feed.appendChild(card);
+  card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function addSettlement(data) {
+  const isReject = data.outcome.includes('REJECTED');
+  const el = document.createElement('div');
+  el.className = 'settlement' + (isReject ? ' rejected' : '');
+  el.innerHTML = `<div class="label">Settlement — Scenario ${data.scenario}</div><div class="outcome ${isReject ? 'rejected' : 'accepted'}">${data.outcome}</div>`;
+  feed.appendChild(el);
+  updateBalances(data.balances);
+}
+
+function addComplete() {
+  const el = document.createElement('div');
+  el.className = 'complete-banner';
+  el.textContent = '// SIMULATION COMPLETE';
+  feed.appendChild(el);
+}
+
+function startSimulation() {
+  feed.innerHTML = '';
+  balancesEl.style.display = 'none';
+  btnRun.disabled = true;
+  status.textContent = 'Connecting...';
+
+  eventSource = new EventSource('/run-simulation');
+
+  eventSource.addEventListener('balances', (e) => {
+    const data = JSON.parse(e.data);
+    updateBalances(data.balances);
+    status.textContent = 'Running...';
+  });
+
+  eventSource.addEventListener('scenario', (e) => {
+    const data = JSON.parse(e.data);
+    addScenarioHeader(data);
+    status.textContent = `Scenario ${data.num}: ${data.title}`;
+  });
+
+  eventSource.addEventListener('step', (e) => {
+    const data = JSON.parse(e.data);
+    addStep(data);
+    status.textContent = `Scenario ${data.scenario} — Step ${data.step}: ${data.label}`;
+  });
+
+  eventSource.addEventListener('urp_message', (e) => {
+    addMessage(JSON.parse(e.data));
+  });
+
+  eventSource.addEventListener('settlement', (e) => {
+    addSettlement(JSON.parse(e.data));
+  });
+
+  eventSource.addEventListener('complete', (e) => {
+    addComplete();
+    status.textContent = 'Done.';
+    eventSource.close();
+    eventSource = null;
+    btnRun.disabled = false;
+  });
+
+  eventSource.onerror = () => {
+    status.textContent = 'Connection lost.';
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    btnRun.disabled = false;
+  };
+}
+
+btnRun.addEventListener('click', startSimulation);
+btnClear.addEventListener('click', () => {
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  feed.innerHTML = '';
+  balancesEl.style.display = 'none';
+  status.textContent = '';
+  btnRun.disabled = false;
+});
+</script>
+</body>
+</html>
