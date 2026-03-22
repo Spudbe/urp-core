@@ -1,10 +1,11 @@
 Universal Reasoning Protocol – Draft Specification
-Status: Draft
 
-This document describes the first draft of the Universal Reasoning Protocol (URP). The goal of URP is to enable autonomous agents to exchange structured reasoning, verify each other’s claims and settle payments based on the outcome. The protocol is designed for machine‑to‑machine communication and is not intended to be read by humans during normal operation.
+**Status: Public Draft v0.2 — reference implementation only. Not production-ready. Spec and API subject to change.**
+
+This document describes the Universal Reasoning Protocol (URP), a draft proposal for structured claim accountability between autonomous agents. URP defines message types and interaction patterns that allow agents to submit claims with proof references and economic stakes, and for other agents to evaluate, challenge, or accept those claims.
 
 Overview
-URP messages carry logical statements (“claims”), references to supporting proofs, staked value and responses. Agents interacting via URP follow a request–response pattern: one agent submits a claim with a stake, other agents evaluate the claim and either accept it, reject it or challenge it. Verifier agents arbitrate disputes and unlock the staked funds accordingly.
+URP messages carry structured claims, references to supporting proofs, staked value, and responses. Agents interacting via URP follow a request–response pattern: one agent submits a claim with a stake, other agents evaluate the claim and either accept it, reject it, or challenge it. Verifier agents arbitrate disputes and the protocol defines how staked funds are redistributed based on the outcome.
 
 Core Message Types
 Claim
@@ -59,19 +60,7 @@ Verification: One or more verifier agents inspect the claim and the associated p
 Settlement: Based on the final decision, funds are transferred. Accepted claims refund the claimant and pay the responder (if there was a challenge). Rejected claims forfeit the claimant’s stake.
 
 Future Directions
-This draft omits many details, including:
-
-Proof format and logic representation (symbolic logic, embeddings, etc.).
-
-Network transport and message serialization.
-
-Reputation and identity management.
-
-Governance and extension mechanisms.
-
-Privacy and encryption features.
-
-These topics will be addressed in subsequent versions of the specification.
+The following areas are recognised as necessary for a complete protocol but are deferred beyond v0.2: proof serialisation format, transport protocol bindings, agent identity and signing model (see signing stub above), privacy and encryption, governance and versioning, and the microtransaction settlement layer. Contributions and feedback via GitHub Issues are welcome.
 
 ## Error Codes
 
