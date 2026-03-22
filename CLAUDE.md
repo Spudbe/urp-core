@@ -2,53 +2,46 @@
 
 ## Project Overview
 
-URP (Universal Reasoning Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/urp-core, current version 0.2.0 (public draft).
+URP (Universal Reasoning Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/urp-core, current version 0.2.0 (public draft, v0.3 features built and tag pending).
 
 ## Architecture
 
-The codebase has five layers:
+The codebase has six layers:
 
-**Message layer** — `urp/core.py` and `urp/message.py`. Defines the protocol data types (`Claim`, `ProofReference`, `Stake`, `Response`, `ClaimType`, `Decision`) as dataclasses with `to_dict()`/`from_dict()` serialisation. `URPMessage` wraps any payload in a versioned envelope with sender, timestamp, and message ID.
+**Message layer** — `urp/core.py` and `urp/message.py`. Defines all protocol data types as dataclasses with `to_dict()`/`from_dict()` serialisation. Core types: `Claim`, `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`. `URPMessage` wraps any payload in a versioned envelope.
 
-**Agent layer** — `urp/agent.py` and `urp/knowledge_base.py`. Abstract `Agent` base class and reference implementations (`ResearcherAgent`, `ChallengerAgent`, `VerifierAgent`). `KnowledgeBase` ABC with `InMemoryKnowledgeBase` for fact lookup.
+**Agent layer** — `urp/agent.py`, `urp/knowledge_base.py`, and `urp/llm_agents.py`. Abstract `Agent` base class and reference implementations. `urp/llm_agents.py` contains `ResearcherLLM`, `ChallengerLLM`, `VerifierLLM` — the shared LLM-backed agent classes used by both `server.py` and simulations.
 
 **Ledger layer** — `urp/ledger.py`. In-memory balance tracker for deposits, withdrawals, and settlement transfers between agents.
 
-**Transport layer** — `urp/transport.py`. WebSocket server/client for networked multi-agent simulations.
+**Transport layer** — `urp/transport.py`. WebSocket server/client for networked multi-agent simulations. MCP and A2A transport adapters are specced but not implemented.
 
-**LLM adapter layer** — `urp/llm.py`. Abstract `LLMAdapter` base class and `GroqAdapter` implementation. Any new LLM provider subclasses `LLMAdapter` and implements `complete(system_prompt, user_prompt) -> str`.
+**LLM adapter layer** — `urp/llm.py`. Abstract `LLMAdapter` base class with three implementations: `GroqAdapter` (Groq API), `OllamaAdapter` (local models via Ollama, stdlib urllib), `OpenAIAdapter` (OpenAI API, stdlib urllib).
 
-**Web server** — `server.py`. FastAPI server with SSE streaming endpoint (`/run-simulation`) and static file serving. Contains its own inline LLM agent helpers (duplicated from `simulations/llm_simulation.py` — consolidation needed). `static/index.html` is the browser UI.
+**Web server** — `server.py`. FastAPI server with SSE streaming endpoint (`/run-simulation`), heartbeat keep-alive for Railway proxy, custom claim input. Deployed at https://urp-core-production.up.railway.app.
 
 ## Current State
 
-**Complete:**
-- `urp/core.py` — all protocol types implemented with serialisation
-- `urp/message.py` — URPMessage envelope with protocol versioning
-- `urp/agent.py` — agent ABCs and reference implementations
-- `urp/knowledge_base.py` — knowledge base ABC and in-memory implementation
-- `urp/ledger.py` — balance tracking
-- `urp/llm.py` — LLMAdapter ABC and GroqAdapter
-- `urp/transport.py` — WebSocket transport
-- `simulations/simple_simulation.py` — single-process demo
-- `simulations/networked_simulation.py` — multi-agent WebSocket demo
-- `simulations/llm_simulation.py` — three-scenario LLM-backed simulation
-- `server.py` — FastAPI server with SSE streaming and custom claim input
-- `static/index.html` — browser interface
-- `tests/test_core.py` — core type tests
-- `tests/test_message.py` — message serialisation tests
-- `SPEC.md` — v1 protocol spec
-- `SPEC-v2.md` — v2 spec with JSON schemas
+**All 13 GitHub issues closed.** 59 passing tests. Railway deployed and live.
 
-**In progress:**
-- LLM agent logic is duplicated between `server.py` and `simulations/llm_simulation.py` — needs consolidation into a shared module
+**Protocol types (all complete with serialisation, specs, schemas, and tests):**
+- `Claim` with `evidence: list[ToolReceipt]`
+- `ProofReference` — citation pointer (hash + URI + summary)
+- `Stake`, `Response`, `SettlementMessage`
+- `ToolReceipt` — verifiable tool call record with 17 fields including SHA-256 hashes, replay/nondeterminism/side-effect classification, evidence strength
+- `AgentCapability` — preflight declaration with `ClaimKind` routing, `EvidenceType` acceptance, `StakePolicy`, validation
 
-**Not yet started:**
-- `SettlementMessage` type (specified in roadmap, not implemented)
-- Agent capability declarations
-- MCP transport adapter
-- OpenAI and Ollama LLM adapters
-- Signing model (JWS stub described in SPEC.md, not implemented)
+**Enums:** `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`
+
+**LLM adapters:** `GroqAdapter`, `OllamaAdapter`, `OpenAIAdapter`
+
+**Simulations:**
+- `simple_simulation.py` — single-process, no API key
+- `llm_simulation.py` — three-scenario Groq-backed
+- `ollama_demo.py` — local model demo
+- `deterministic_demo.py` — replayable ToolReceipt verification, no LLM
+
+**Infrastructure:** GitHub Actions CI, Railway Dockerfile deployment, SSE heartbeat
 
 ## Engineering Conventions
 
@@ -80,12 +73,17 @@ pip install -r requirements.txt
 # Simple simulation (no API key needed)
 python simulations/simple_simulation.py
 
+# Deterministic verification demo (no API key needed)
+python simulations/deterministic_demo.py
+
 # LLM-backed simulation (requires Groq API key)
 export GROQ_API_KEY=your_key_here
 python simulations/llm_simulation.py
 
+# Local model simulation (requires Ollama)
+python simulations/ollama_demo.py
+
 # Web interface (requires Groq API key)
-pip install fastapi uvicorn
 export GROQ_API_KEY=your_key_here
 python server.py
 # Open http://localhost:8000
@@ -93,18 +91,17 @@ python server.py
 
 ## Next Priorities
 
-1. Centralise LLM agent logic from `server.py` and `simulations/llm_simulation.py` into a shared module (e.g. `urp/agents/llm_agents.py`)
-2. Add OpenAI adapter (subclass `LLMAdapter`)
-3. Add Ollama adapter (subclass `LLMAdapter`)
-4. Add `SettlementMessage` type to `urp/core.py` and specs
-5. Add agent capability declarations
-6. Add MCP transport adapter stub
+1. EvidenceBundle type — composite evidence grouping multiple ToolReceipts and signed attestations
+2. Structured claim format — replace free-text statements with machine-parseable propositions
+3. JWS signing implementation — implement the signing model stubbed in SPEC.md
+4. Machine-native reasoning layer — binary-efficient message encoding for high-throughput agent communication
 
 ## Provider Notes
 
-- `GroqAdapter` uses model `llama-3.3-70b-versatile` by default
-- Reads `GROQ_API_KEY` from environment; raises `EnvironmentError` if missing
-- `LLMAdapter` is the abstract base — any new provider follows the same pattern: subclass it, implement `complete(system_prompt: str, user_prompt: str) -> str`, expose a `model` attribute
+- `GroqAdapter` uses model `llama-3.3-70b-versatile` by default, reads `GROQ_API_KEY`
+- `OllamaAdapter` uses model `llama3` by default, reads `OLLAMA_HOST` (defaults to localhost:11434), stdlib urllib
+- `OpenAIAdapter` uses model `gpt-4o-mini` by default, reads `OPENAI_API_KEY`, stdlib urllib
+- `LLMAdapter` is the abstract base — any new provider subclasses it and implements `complete(system_prompt, user_prompt) -> str`
 - Proof location URIs use the format `llm://groq/{model_name}`, read dynamically from the adapter's `model` attribute
 
 ## Commit Style
