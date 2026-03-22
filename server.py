@@ -229,6 +229,9 @@ async def debug_env():
     return {
         "GROQ_API_KEY_set": key is not None and len(key) > 0,
         "GROQ_API_KEY_prefix": key[:4] + "..." if key else None,
+        "RAILWAY_ENVIRONMENT_NAME": os.getenv("RAILWAY_ENVIRONMENT_NAME"),
+        "RAILWAY_SERVICE_NAME": os.getenv("RAILWAY_SERVICE_NAME"),
+        "RAILWAY_PUBLIC_DOMAIN": os.getenv("RAILWAY_PUBLIC_DOMAIN"),
     }
 
 
