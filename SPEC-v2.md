@@ -253,6 +253,67 @@
 }
 ```
 
+### 2.8 StructuredClaim
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URP StructuredClaim",
+  "description": "Machine-parseable claim proposition that can be matched against ToolReceipt evidence.",
+  "type": "object",
+  "required": ["sc_version", "kind", "proposition"],
+  "properties": {
+    "sc_version": { "type": "string", "description": "StructuredClaim schema version." },
+    "kind": { "type": "string", "enum": ["factual_assertion", "tool_output", "code_verification", "data_integrity", "provenance_check", "policy_compliance", "safety_check"], "description": "Claim kind for routing." },
+    "proposition": { "$ref": "#/$defs/Proposition" },
+    "metadata": { "type": ["object", "null"] }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "Proposition": {
+      "oneOf": [
+        { "$ref": "#/$defs/ToolOutputEquals" },
+        { "$ref": "#/$defs/ValueComparison" },
+        { "$ref": "#/$defs/Compound" }
+      ]
+    },
+    "ToolOutputEquals": {
+      "type": "object",
+      "required": ["type", "tool_name", "input", "expected_output"],
+      "properties": {
+        "type": { "const": "tool_output_equals" },
+        "tool_name": { "type": "string", "minLength": 1, "description": "Name of the tool that should produce the expected output." },
+        "input": { "type": "object", "description": "Inputs to pass to the tool." },
+        "expected_output": { "type": "object", "description": "Expected output from the tool." }
+      },
+      "additionalProperties": false
+    },
+    "ValueComparison": {
+      "type": "object",
+      "required": ["type", "tool_name", "input", "output_field", "operator", "expected_value"],
+      "properties": {
+        "type": { "const": "value_comparison" },
+        "tool_name": { "type": "string", "minLength": 1 },
+        "input": { "type": "object" },
+        "output_field": { "type": "string", "description": "Dot-path to the field in the tool output to compare." },
+        "operator": { "type": "string", "enum": ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "not_contains"] },
+        "expected_value": { "description": "The value to compare against." }
+      },
+      "additionalProperties": false
+    },
+    "Compound": {
+      "type": "object",
+      "required": ["type", "operator", "operands"],
+      "properties": {
+        "type": { "const": "compound" },
+        "operator": { "type": "string", "enum": ["and", "or", "not"] },
+        "operands": { "type": "array", "items": { "$ref": "#/$defs/Proposition" }, "minItems": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
 ## 3. Out of Scope for v0.3
 
 The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.
