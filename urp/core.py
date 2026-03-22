@@ -23,6 +23,13 @@ class Decision(Enum):
     EXPIRED = "expired"
 
 
+class SettlementOutcome(Enum):
+    """Outcome of a claim settlement."""
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
 class EvidenceStrength(Enum):
     """How strongly a ToolReceipt is authenticated."""
     UNSIGNED = "unsigned"
@@ -298,4 +305,55 @@ class Response:
             decision=Decision(data["decision"]),
             proof_ref=ProofReference.from_dict(data["proof_ref"]) if data.get("proof_ref") else None,
             stake=Stake.from_dict(data["stake"]) if data.get("stake") else None,
+        )
+
+
+@dataclass
+class SettlementMessage:
+    """A first-class protocol message recording the outcome of a claim settlement.
+
+    Attributes:
+        settlement_id: UUID identifying this settlement, auto-assigned if empty.
+        claim_id: The claim this settlement resolves.
+        outcome: The settlement outcome (accepted, rejected, or expired).
+        researcher_delta: Change in researcher balance (positive = gained, negative = lost).
+        challenger_delta: Change in challenger balance (positive = gained, negative = lost).
+        timestamp: ISO 8601 UTC timestamp of when settlement occurred.
+        notes: Optional human-readable summary of why this outcome was reached.
+    """
+    settlement_id: str
+    claim_id: str
+    outcome: SettlementOutcome
+    researcher_delta: float
+    challenger_delta: float
+    timestamp: str
+    notes: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.settlement_id:
+            self.settlement_id = str(uuid.uuid4())
+
+    def to_dict(self) -> dict:
+        d = {
+            "settlement_id": self.settlement_id,
+            "claim_id": self.claim_id,
+            "outcome": self.outcome.value,
+            "researcher_delta": self.researcher_delta,
+            "challenger_delta": self.challenger_delta,
+            "timestamp": self.timestamp,
+        }
+        if self.notes is not None:
+            d["notes"] = self.notes
+        return d
+
+    @classmethod
+    def from_dict(cls, data: dict) -> SettlementMessage:
+        return cls(
+            settlement_id=data.get("settlement_id", ""),
+            claim_id=data["claim_id"],
+            outcome=SettlementOutcome(data["outcome"]),
+            researcher_delta=data["researcher_delta"],
+            challenger_delta=data["challenger_delta"],
+            timestamp=data["timestamp"],
+            notes=data.get("notes"),
         )

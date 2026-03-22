@@ -2,6 +2,7 @@ import pytest
 from urp.core import (
     ProofReference, Stake, Claim, ClaimType, Decision, ToolReceipt,
     EvidenceStrength, NondeterminismClass, SideEffectClass, ReplayClass,
+    SettlementMessage, SettlementOutcome,
 )
 
 
@@ -226,3 +227,66 @@ class TestEvidenceEnums:
         assert ReplayClass.STATEFUL.value == "stateful"
         assert ReplayClass.STRONG.value == "strong"
         assert ReplayClass.WITNESS_ONLY.value == "witness_only"
+
+
+class TestSettlementOutcome:
+    def test_enum_values(self):
+        assert SettlementOutcome.ACCEPTED.value == "accepted"
+        assert SettlementOutcome.REJECTED.value == "rejected"
+        assert SettlementOutcome.EXPIRED.value == "expired"
+
+
+class TestSettlementMessage:
+    def _make_settlement(self, **overrides):
+        defaults = {
+            "settlement_id": "s-1",
+            "claim_id": "c-1",
+            "outcome": SettlementOutcome.ACCEPTED,
+            "researcher_delta": 0.5,
+            "challenger_delta": -0.3,
+            "timestamp": "2026-03-22T13:00:00Z",
+        }
+        defaults.update(overrides)
+        return SettlementMessage(**defaults)
+
+    def test_fields_set_correctly(self):
+        sm = self._make_settlement(notes="Claim verified by replay")
+        assert sm.settlement_id == "s-1"
+        assert sm.claim_id == "c-1"
+        assert sm.outcome == SettlementOutcome.ACCEPTED
+        assert sm.researcher_delta == 0.5
+        assert sm.challenger_delta == -0.3
+        assert sm.timestamp == "2026-03-22T13:00:00Z"
+        assert sm.notes == "Claim verified by replay"
+
+    def test_to_dict_from_dict_round_trip(self):
+        original = self._make_settlement(notes="Round trip test")
+        d = original.to_dict()
+        reconstructed = SettlementMessage.from_dict(d)
+        assert reconstructed.settlement_id == original.settlement_id
+        assert reconstructed.claim_id == original.claim_id
+        assert reconstructed.outcome == original.outcome
+        assert reconstructed.researcher_delta == original.researcher_delta
+        assert reconstructed.challenger_delta == original.challenger_delta
+        assert reconstructed.timestamp == original.timestamp
+        assert reconstructed.notes == original.notes
+
+    def test_auto_assigns_uuid(self):
+        sm = SettlementMessage(
+            settlement_id="", claim_id="c-1",
+            outcome=SettlementOutcome.REJECTED,
+            researcher_delta=-0.5, challenger_delta=0.8,
+            timestamp="2026-03-22T13:00:00Z",
+        )
+        assert sm.settlement_id != ""
+        assert len(sm.settlement_id) == 36  # UUID format
+
+    def test_to_dict_omits_notes_when_none(self):
+        sm = self._make_settlement()
+        d = sm.to_dict()
+        assert "notes" not in d
+
+    def test_to_dict_includes_notes_when_set(self):
+        sm = self._make_settlement(notes="Challenger won")
+        d = sm.to_dict()
+        assert d["notes"] == "Challenger won"

@@ -177,6 +177,27 @@
 }
 ```
 
+### 2.6 SettlementMessage
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URP SettlementMessage",
+  "description": "Records the outcome of a claim settlement and resulting balance changes.",
+  "type": "object",
+  "required": ["settlement_id", "claim_id", "outcome", "researcher_delta", "challenger_delta", "timestamp"],
+  "properties": {
+    "settlement_id": { "type": "string", "format": "uuid", "description": "UUID identifying this settlement." },
+    "claim_id": { "type": "string", "format": "uuid", "description": "The claim this settlement resolves." },
+    "outcome": { "type": "string", "enum": ["accepted", "rejected", "expired"], "description": "The settlement outcome." },
+    "researcher_delta": { "type": "number", "description": "Change in researcher balance (positive = gained, negative = lost)." },
+    "challenger_delta": { "type": "number", "description": "Change in challenger balance (positive = gained, negative = lost)." },
+    "timestamp": { "type": "string", "format": "date-time", "description": "ISO 8601 UTC timestamp of when settlement occurred." },
+    "notes": { "type": ["string", "null"], "description": "Optional human-readable summary of why this outcome was reached." }
+  },
+  "additionalProperties": false
+}
+```
+
 ## 3. Out of Scope for v0.2
 
 The following topics are recognised as necessary for a complete protocol but are deferred to future versions: proof serialisation format, transport protocol bindings, agent identity and signing model, privacy and encryption, governance and versioning, and microtransaction/settlement layer. See ROADMAP.md for planned work.

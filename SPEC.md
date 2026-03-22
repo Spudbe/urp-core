@@ -44,6 +44,19 @@ decision	enum('accept', 'reject', 'challenge')	The responder’s decision.
 proof_ref	string	Optional proof supporting the decision.
 stake	Stake	Stake placed by the responder. Only used when challenging.
 
+SettlementMessage
+A SettlementMessage is a first-class protocol message that records the outcome of a claim settlement and the resulting balance changes. It makes settlement auditable and replayable.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| settlement_id | string | UUID identifying this settlement, auto-assigned if not provided. |
+| claim_id | string | The claim this settlement resolves. |
+| outcome | enum('accepted', 'rejected', 'expired') | The settlement outcome. |
+| researcher_delta | float | Change in researcher balance (positive = gained, negative = lost). |
+| challenger_delta | float | Change in challenger balance (positive = gained, negative = lost). |
+| timestamp | string | ISO 8601 UTC timestamp of when settlement occurred. |
+| notes | string or null | Optional human-readable summary of why this outcome was reached. |
+
 Interaction Flow
 Submission: An agent submits a Claim along with a Stake. The claim references a proof of correctness.
 
