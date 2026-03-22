@@ -2,6 +2,25 @@
 
 All notable changes to URP are documented here.
 
+## [0.5.0] – 2026-03-22
+
+### Added
+- StructuredClaim: machine-parseable propositions (ToolOutputEquals, ValueComparison, Compound) in urp/structured_claim.py
+- Claim-to-evidence matching engine in urp/claim_verifier.py with three-valued logic
+- A2A adapter in urp/a2a_adapter.py: AgentCapability ↔ AgentCard translation
+- StructuredClaim and claim_match SSE events in live deterministic demo
+- Optional structured_claim field on Claim (Phase 1 migration)
+- /.well-known/agent-card.json A2A discovery endpoint
+
+## [0.4.0] – 2026-03-22
+
+### Added
+- MCP adapter in urp/mcp_adapter.py: wrap_tool_call, wrap_mcp_tool_result, extract_tool_receipt
+- JWS signing in urp/signing.py: Ed25519 detached signatures, receipt signing with evidence strength escalation
+- Batch verification: verify_claim() over Claim.evidence list
+- /.well-known/urp-capability.json discovery endpoint
+- jwcrypto dependency added
+
 ## [0.3.0] – 2026-03-22
 
 ### Added
