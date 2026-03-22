@@ -7,22 +7,24 @@ What is complete:
 - **Everything from v0.2** (see below)
 - **ToolReceipt** — First concretely verifiable proof type. Records tool name, version, inputs, output, timestamp, and optional signature. Verifiable by replay or signature check, not by asking another LLM. ([#12](https://github.com/Spudbe/urp-core/issues/12))
 - **EvidenceStrength / NondeterminismClass / SideEffectClass / ReplayClass enums** — Fine-grained classification of evidence quality, reproducibility, and side effects.
-- **SettlementMessage** — First-class message type for explicit fund-transfer records. ([#5](https://github.com/Spudbe/urp-core/issues/5))
-- **AgentCapability** — Dataclass letting agents declare supported claim types, accepted proof formats, and protocol version. ([#6](https://github.com/Spudbe/urp-core/issues/6))
+- **SettlementMessage** — First-class message type for explicit fund-transfer records, emitted as URPMessage in both LLM and deterministic flows. ([#5](https://github.com/Spudbe/urp-core/issues/5))
+- **AgentCapability** — Dataclass letting agents declare supported claim types, accepted proof formats, and protocol version. Served at `/.well-known/urp-capability.json`. ([#6](https://github.com/Spudbe/urp-core/issues/6))
+- **ToolReceiptVerifier** — Registry-based verification engine (`urp/verify.py`). Validates classification consistency, replays deterministic tools, compares output hashes. 7 verification statuses.
+- **Deterministic tool registry** — 4 built-in pure functions (`urp/deterministic_tools.py`): `compute_fibonacci`, `compute_factorial`, `compute_sha256`, `math_eval`.
+- **Classification validation** — 6 rules rejecting contradictory receipt metadata (e.g. DETERMINISTIC+WEAK, RANDOMIZED+STRONG, side effects+STRONG).
+- **Hash test vectors** — Pinned canonical JSON → SHA-256 vectors that catch serialisation drift.
+- **Live deterministic demo** — `/run-deterministic` endpoint streaming two scenarios: verified claim + tampered receipt detection. No API key required.
+- **Capability discovery** — `/.well-known/urp-capability.json` endpoint serving an AgentCapability declaration.
 - **OllamaAdapter** — Local model support via Ollama. ([#3](https://github.com/Spudbe/urp-core/issues/3))
 - **OpenAIAdapter** — OpenAI model support using stdlib urllib. ([#8](https://github.com/Spudbe/urp-core/issues/8))
 - **Centralised LLM agents** — ResearcherLLM, ChallengerLLM, VerifierLLM in `urp/llm_agents.py`. ([#2](https://github.com/Spudbe/urp-core/issues/2))
 - **Dynamic confidence scoring** — Confidence derived from LLM reasoning. ([#9](https://github.com/Spudbe/urp-core/issues/9))
-- **Deterministic verification demo** — Pure-function replay verification with tamper detection (`simulations/deterministic_demo.py`).
-- **Security hardening** — `/debug-env` gated behind `DEBUG=true`, rate limiting on simulations, max claim length enforcement.
+- **Security hardening** — `/debug-env` gated behind `DEBUG=true`, rate limiting (5 concurrent), max claim length (2000 chars).
 
 What is not yet implemented:
 
 - JWS signing (stubbed in SPEC.md)
 - MCP transport adapter ([#7](https://github.com/Spudbe/urp-core/issues/7))
-- `ToolReceiptVerifier` engine with deterministic tool registry
-- Deterministic verification scenario in live web demo
-- SettlementMessage streaming as URPMessage events
 
 ## v0.2 — Previous (Public Draft)
 
@@ -40,43 +42,36 @@ What is complete:
 - **Specification** — v1 protocol spec with error codes and signing stub (`SPEC.md`), v2 spec with JSON schemas (`SPEC-v2.md`)
 - **CI** — GitHub Actions running pytest on push and PR (`.github/workflows/ci.yml`)
 
-What is not yet implemented:
+## v0.4 — Next (Interop + Signing)
 
-- Settlement is implicit in simulation scripts, not a first-class message type
-- Agents cannot declare capabilities
-- Proofs are LLM-generated summaries — no mechanically verifiable evidence type
-- No message signing
-- No MCP transport integration
-- Only one LLM provider (Groq)
+**Design principle for v0.4:** Make URP useful outside the demo. Prove it works with real tool-calling flows and signed messages.
 
-## v0.4 — Planned
+### MCP integration
 
-**Design principle for v0.4:** Build the verification engine and prove it in the live demo.
+- **MCP transport adapter** — Carry URP ToolReceipts as `_meta` on MCP `ToolResultContent`. An MCP server wraps tool call results in ToolReceipts; an MCP client verifies them. ([#7](https://github.com/Spudbe/urp-core/issues/7))
+- **"Wrap any tool call" utility** — A reusable function that takes a tool name, inputs, outputs, and classification, and returns a ToolReceipt. Makes it trivial for MCP server authors to add URP receipts.
 
-### Verification engine
+### JWS signing
 
-- **`ToolReceiptVerifier`** — `urp/verify.py` with a registry of deterministic tool functions, automatic replay, and hash comparison.
-- **Test vectors** — Canonical test cases for receipt hashing to catch serialisation drift.
-- **Deterministic tool registry** — Registry of pure functions that can be replayed for verification.
+- **Signed ToolReceipts** — Implement Ed25519 JWS signing over canonical receipt JSON. `EvidenceStrength.CALLER_SIGNED` and `PROVIDER_SIGNED` become exercised, not just enum values.
+- **Signed URPMessage envelopes** — Detached JWS signatures on the wire envelope, using the JWSSignature type already in `urp/core.py`.
+- **Key management** — Minimal key generation and verification utilities. No full PKI — just enough for demo signing and local verification.
 
-### Live demo integration
+### Verifier improvements
 
-- **Deterministic scenario in web demo** — Add a replay-verified scenario to the SSE simulation stream alongside the LLM scenarios.
-- **SettlementMessage streaming** — Emit SettlementMessage as a first-class URPMessage event in the SSE stream.
-
-### Signing and transport
-
-- **JWS signing** — Implement the signing model stubbed in SPEC.md. URPMessage envelopes carry detached JWS signatures over canonical JSON.
-- **MCP transport adapter** — Spec and stub implementation for carrying URP messages as MCP tool calls. ([#7](https://github.com/Spudbe/urp-core/issues/7))
+- **Remote tool replay** — `ToolReceiptVerifier` supports HTTP-callable tools (not just local Python functions). Register a URL + expected schema, verifier calls it and compares.
+- **Batch verification** — Verify all receipts in a `Claim.evidence` list in one call, returning a summary result.
 
 ## v0.5 — Future Direction
 
 - **EvidenceBundle** — Composite evidence type that groups multiple ToolReceipts, external document hashes, and signed attestations into a single verifiable package attached to a claim.
 
-- **Structured reasoning format** — Replace free-text claim statements with a structured logic representation. Claims become machine-parseable propositions rather than natural language strings.
+- **A2A adapter** — Map URP AgentCapability to/from A2A agent cards. Route claims to capable agents using A2A discovery.
 
-- **Machine-native communication layer** — Binary-efficient message encoding and transport optimised for high-throughput agent-to-agent communication. Move beyond JSON-over-WebSocket toward a protocol designed for machines, not human readability.
+- **Structured claim format** — Replace free-text claim statements with machine-parseable propositions. Claims become structured logic, not natural language strings.
 
-- **Privacy and encryption** — End-to-end encryption for claim content, selective disclosure of proof details, and zero-knowledge proof integration for sensitive claims.
+- **Canonicalization alignment** — Adopt RFC 8785 (JCS) for canonical JSON, aligning with A2A's canonicalization requirements for signed agent cards.
+
+- **Privacy and encryption** — Selective disclosure of proof details. Zero-knowledge proof integration for sensitive claims.
 
 - **Governance and versioning** — Formal protocol versioning governance, backwards compatibility guarantees, and deprecation policy.
