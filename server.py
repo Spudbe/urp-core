@@ -219,7 +219,10 @@ async def _run_simulation(custom_claim: Optional[str] = None):
 @app.get("/", response_class=HTMLResponse)
 async def index():
     import pathlib
-    html = pathlib.Path("static/index.html").read_text(encoding="utf-8")
+    try:
+        html = pathlib.Path("static/index.html").read_text(encoding="utf-8")
+    except FileNotFoundError:
+        html = "<html><body><h1>URP Simulation Server</h1><p>Running. static/index.html not found.</p></body></html>"
     return HTMLResponse(content=html)
 
 
