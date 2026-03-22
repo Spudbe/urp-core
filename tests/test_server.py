@@ -68,3 +68,62 @@ class TestMaxClaimLengthConstant:
 
     def test_max_claim_length_value(self):
         assert MAX_CLAIM_LENGTH == 2000
+
+
+class TestDeterministicEndpoint:
+    """The /run-deterministic endpoint streams a full verification cycle."""
+
+    def test_returns_200_sse_stream(self, client):
+        resp = client.get("/run-deterministic")
+        assert resp.status_code == 200
+        assert "text/event-stream" in resp.headers["content-type"]
+
+    def test_stream_contains_expected_events(self, client):
+        """The SSE stream should contain ping, balances, scenario, steps,
+        urp_message events, settlement, and complete."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        assert "event: ping" in body
+        assert "event: balances" in body
+        assert "event: scenario" in body
+        assert "event: step" in body
+        assert "event: urp_message" in body
+        assert "event: settlement" in body
+        assert "event: complete" in body
+
+    def test_stream_contains_deterministic_claim(self, client):
+        """The claim should reference compute_fibonacci and Fibonacci(10)."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        assert "compute_fibonacci" in body
+        assert "Fibonacci" in body
+
+    def test_stream_contains_settlement_message(self, client):
+        """A SettlementMessage should be emitted as a URPMessage."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        assert "settlement_id" in body
+        assert "researcher_delta" in body
+
+    def test_stream_contains_verification_result(self, client):
+        """The challenger/verifier reasoning should mention replay verification."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        assert "replay_class" in body
+        assert "verified" in body.lower() or "VERIFIED" in body
+
+    def test_stream_contains_tampered_scenario(self, client):
+        """A second scenario should show tampered receipt detection."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        assert "TAMPERED" in body
+        assert "det-claim-002-tampered" in body
+        assert "REJECTED" in body or "rejected" in body
+
+    def test_no_api_key_required(self, client):
+        """The deterministic endpoint must work without GROQ_API_KEY."""
+        import os
+        with patch.dict(os.environ, {}, clear=True):
+            resp = client.get("/run-deterministic")
+            assert resp.status_code == 200
+            assert "event: complete" in resp.text

@@ -74,6 +74,10 @@
   button:hover { background: var(--green); color: var(--bg); }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
   button:disabled:hover { background: transparent; color: var(--green); }
+  button.deterministic { border-color: var(--cyan); color: var(--cyan); }
+  button.deterministic:hover { background: var(--cyan); color: var(--bg); }
+  button.deterministic:disabled { opacity: 0.3; }
+  button.deterministic:disabled:hover { background: transparent; color: var(--cyan); }
   button.secondary { border-color: var(--dim); color: var(--dim); }
   button.secondary:hover { background: var(--dim); color: var(--bg); }
 
@@ -177,6 +181,7 @@
   <label for="claim-input" class="claim-label">Claim:</label>
   <textarea id="claim-input" rows="1" placeholder="Enter any claim for agents to debate..."></textarea>
   <button id="btn-run">Run Simulation</button>
+  <button id="btn-deterministic" class="deterministic">Deterministic Demo (no API key)</button>
   <button id="btn-clear" class="secondary">Clear</button>
 </div>
 
@@ -193,8 +198,16 @@ const balancesEl = document.getElementById('balances');
 const balanceRows = document.getElementById('balance-rows');
 const status = document.getElementById('status');
 const btnRun = document.getElementById('btn-run');
+const btnDeterministic = document.getElementById('btn-deterministic');
 const btnClear = document.getElementById('btn-clear');
 const claimInput = document.getElementById('claim-input');
+
+let eventSource = null;
+
+function setButtonsDisabled(disabled) {
+  btnRun.disabled = disabled;
+  btnDeterministic.disabled = disabled;
+}
 
 let eventSource = null;
 
@@ -266,17 +279,11 @@ function addComplete() {
   feed.appendChild(el);
 }
 
-function startSimulation() {
+function startStream(url) {
   feed.innerHTML = '';
   balancesEl.style.display = 'none';
-  btnRun.disabled = true;
+  setButtonsDisabled(true);
   status.textContent = 'Connecting...';
-
-  const customClaim = claimInput.value.trim();
-  let url = '/run-simulation';
-  if (customClaim) {
-    url += '?claim=' + encodeURIComponent(customClaim);
-  }
 
   eventSource = new EventSource(url);
 
@@ -288,7 +295,7 @@ function startSimulation() {
         status.textContent = data.message || 'Error';
         eventSource.close();
         eventSource = null;
-        btnRun.disabled = false;
+        setButtonsDisabled(false);
       }
     } catch (_) {}
   });
@@ -324,17 +331,31 @@ function startSimulation() {
     status.textContent = 'Done.';
     eventSource.close();
     eventSource = null;
-    btnRun.disabled = false;
+    setButtonsDisabled(false);
   });
 
   eventSource.onerror = () => {
     status.textContent = 'Connection lost.';
     if (eventSource) { eventSource.close(); eventSource = null; }
-    btnRun.disabled = false;
+    setButtonsDisabled(false);
   };
 }
 
+function startSimulation() {
+  const customClaim = claimInput.value.trim();
+  let url = '/run-simulation';
+  if (customClaim) {
+    url += '?claim=' + encodeURIComponent(customClaim);
+  }
+  startStream(url);
+}
+
+function startDeterministic() {
+  startStream('/run-deterministic');
+}
+
 btnRun.addEventListener('click', startSimulation);
+btnDeterministic.addEventListener('click', startDeterministic);
 claimInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !btnRun.disabled) {
     e.preventDefault();
@@ -346,7 +367,7 @@ btnClear.addEventListener('click', () => {
   feed.innerHTML = '';
   balancesEl.style.display = 'none';
   status.textContent = '';
-  btnRun.disabled = false;
+  setButtonsDisabled(false);
 });
 </script>
 </body>
