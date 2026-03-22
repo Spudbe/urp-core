@@ -39,6 +39,7 @@
 
   /* Custom claim input */
   #claim-input {
+    display: block;
     width: 100%;
     background: var(--surface);
     border: 1px solid var(--green);
@@ -49,6 +50,9 @@
     margin-bottom: 12px;
     outline: none;
     transition: border-color 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
   }
   #claim-input::placeholder { color: var(--dim); }
   #claim-input:focus { border-color: var(--green); box-shadow: 0 0 0 1px rgba(0,255,136,0.2); }
