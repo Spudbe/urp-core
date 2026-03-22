@@ -27,6 +27,8 @@ from urp.ledger import Ledger
 from urp.llm import GroqAdapter
 from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
 from urp.message import PROTOCOL_VERSION, URPMessage
+from urp.structured_claim import StructuredClaim, ToolOutputEquals, ValueComparison, Compound, LogicalOp, ComparisonOp
+from urp.claim_verifier import match_claim, PropStatus
 from urp.verify import ToolReceiptVerifier, VerificationStatus
 
 app = FastAPI(title="URP Simulation Server")
@@ -341,6 +343,23 @@ async def _run_deterministic_demo():
     })
     ledger.withdraw(researcher_name, claim.stake.amount)
 
+    # --- StructuredClaim: machine-parseable proposition ---
+    sc = StructuredClaim(
+        sc_version="0.5",
+        kind="tool_output",
+        proposition=ToolOutputEquals(
+            tool_name="compute_fibonacci",
+            input=inputs,
+            expected_output=output,
+        ),
+    )
+    yield _sse("structured_claim", {
+        "scenario": 1,
+        "claim": sc.to_dict(),
+        "fingerprint": sc.fingerprint(),
+        "statement": sc.render_statement(),
+    })
+
     # --- Step 2: Challenger replays the tool ---
     yield _sse("step", {"scenario": 1, "step": 2, "label": "Challenger replays tool from ToolReceipt"})
     await asyncio.sleep(0.1)
@@ -396,6 +415,15 @@ async def _run_deterministic_demo():
         "role": "verifier",
         "reasoning": verifier_reason,
         "message": json.loads(msg_final.to_json(compact=False)),
+    })
+
+    # --- Claim-to-evidence matching via StructuredClaim ---
+    claim_match = match_claim(sc, claim.evidence)
+    yield _sse("claim_match", {
+        "scenario": 1,
+        "status": claim_match.overall_status.value,
+        "summary": claim_match.summary,
+        "fingerprint": claim_match.claim_fingerprint,
     })
 
     # --- Settlement as first-class SettlementMessage ---
@@ -500,6 +528,23 @@ async def _run_deterministic_demo():
     })
     ledger.withdraw(researcher_name, tampered_claim.stake.amount)
 
+    # --- StructuredClaim for tampered scenario ---
+    sc_tampered = StructuredClaim(
+        sc_version="0.5",
+        kind="tool_output",
+        proposition=ToolOutputEquals(
+            tool_name="compute_fibonacci",
+            input={"n": 10},
+            expected_output=tampered_output,
+        ),
+    )
+    yield _sse("structured_claim", {
+        "scenario": 2,
+        "claim": sc_tampered.to_dict(),
+        "fingerprint": sc_tampered.fingerprint(),
+        "statement": sc_tampered.render_statement(),
+    })
+
     # --- Step 2: Challenger replays and detects tampering ---
     yield _sse("step", {"scenario": 2, "step": 2, "label": "Challenger replays tool — detects tampering"})
     await asyncio.sleep(0.1)
@@ -538,6 +583,15 @@ async def _run_deterministic_demo():
         "role": "verifier",
         "reasoning": verifier_reason_2,
         "message": json.loads(msg_final_2.to_json(compact=False)),
+    })
+
+    # --- Claim-to-evidence matching (tampered) ---
+    tampered_match = match_claim(sc_tampered, tampered_claim.evidence)
+    yield _sse("claim_match", {
+        "scenario": 2,
+        "status": tampered_match.overall_status.value,
+        "summary": tampered_match.summary,
+        "fingerprint": tampered_match.claim_fingerprint,
     })
 
     # --- Settlement for tampered claim ---

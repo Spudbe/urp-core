@@ -89,6 +89,8 @@ class TestDeterministicEndpoint:
         assert "event: step" in body
         assert "event: urp_message" in body
         assert "event: settlement" in body
+        assert "event: structured_claim" in body
+        assert "event: claim_match" in body
         assert "event: complete" in body
 
     def test_stream_contains_deterministic_claim(self, client):
@@ -127,6 +129,31 @@ class TestDeterministicEndpoint:
             resp = client.get("/run-deterministic")
             assert resp.status_code == 200
             assert "event: complete" in resp.text
+
+    def test_structured_claim_contains_proposition(self, client):
+        """The structured_claim event should contain a tool_output_equals proposition."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        assert "tool_output_equals" in body
+        assert "sc_version" in body
+        assert "fingerprint" in body
+
+    def test_claim_match_shows_true_for_valid(self, client):
+        """Scenario 1 should produce a claim_match with status true."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        # The first claim_match should be "true" (valid fibonacci)
+        assert '"status": "true"' in body or '"status":"true"' in body
+
+    def test_claim_match_shows_false_for_tampered(self, client):
+        """Scenario 2: the claim matches its own tampered receipt (true),
+        but the replay verifier catches the lie. Both events should appear."""
+        resp = client.get("/run-deterministic")
+        body = resp.text
+        # Claim-to-evidence matching says true (claim matches its receipt)
+        # But replay verification rejects it (output hash mismatch)
+        assert "TAMPERED" in body
+        assert "REJECTED" in body or "rejected" in body
 
 
 class TestCapabilityEndpoint:

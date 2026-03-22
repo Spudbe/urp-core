@@ -159,6 +159,32 @@
   .settlement .outcome.accepted { color: var(--green); }
   .settlement .outcome.rejected { color: var(--red); }
 
+  /* Structured claim */
+  .structured-claim {
+    background: var(--surface);
+    border-left: 3px solid var(--cyan);
+    padding: 12px 16px;
+    margin: 4px 0;
+  }
+  .structured-claim .label { color: var(--cyan); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .structured-claim .statement { color: var(--text); font-size: 13px; margin-bottom: 6px; }
+  .structured-claim .fingerprint { color: var(--dim); font-size: 11px; font-family: var(--mono); word-break: break-all; }
+  .structured-claim pre { font-size: 11px; color: var(--dim); overflow-x: auto; margin-top: 8px; max-height: 200px; }
+
+  /* Claim match */
+  .claim-match {
+    background: var(--surface);
+    border-left: 3px solid var(--yellow);
+    padding: 12px 16px;
+    margin: 4px 0;
+  }
+  .claim-match.match-true { border-left-color: var(--green); }
+  .claim-match.match-false { border-left-color: var(--red); }
+  .claim-match .label { color: var(--yellow); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .claim-match.match-true .label { color: var(--green); }
+  .claim-match.match-false .label { color: var(--red); }
+  .claim-match .summary { font-size: 13px; }
+
   /* Complete banner */
   .complete-banner {
     text-align: center;
@@ -270,6 +296,29 @@ function addSettlement(data) {
   updateBalances(data.balances);
 }
 
+function addStructuredClaim(data) {
+  const el = document.createElement('div');
+  el.className = 'structured-claim';
+  let html = `<div class="label">Structured Claim — Scenario ${data.scenario}</div>`;
+  html += `<div class="statement">${escapeHtml(data.statement)}</div>`;
+  html += `<div class="fingerprint">fingerprint: ${escapeHtml(data.fingerprint)}</div>`;
+  html += `<pre>${escapeHtml(JSON.stringify(data.claim, null, 2))}</pre>`;
+  el.innerHTML = html;
+  feed.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function addClaimMatch(data) {
+  const statusClass = data.status === 'true' ? 'match-true' : data.status === 'false' ? 'match-false' : '';
+  const el = document.createElement('div');
+  el.className = 'claim-match ' + statusClass;
+  let html = `<div class="label">Claim ↔ Evidence Match — Scenario ${data.scenario}</div>`;
+  html += `<div class="summary">${escapeHtml(data.summary)}</div>`;
+  el.innerHTML = html;
+  feed.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
 function addComplete() {
   const el = document.createElement('div');
   el.className = 'complete-banner';
@@ -322,6 +371,14 @@ function startStream(url) {
 
   eventSource.addEventListener('settlement', (e) => {
     addSettlement(JSON.parse(e.data));
+  });
+
+  eventSource.addEventListener('structured_claim', (e) => {
+    addStructuredClaim(JSON.parse(e.data));
+  });
+
+  eventSource.addEventListener('claim_match', (e) => {
+    addClaimMatch(JSON.parse(e.data));
   });
 
   eventSource.addEventListener('complete', (e) => {
