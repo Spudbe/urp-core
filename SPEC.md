@@ -171,23 +171,24 @@ URP messages SHOULD be signed by the sending agent to ensure authenticity and ta
 
 URP is transport-agnostic. The reference implementation uses WebSockets. Production deployments should use existing agent communication protocols as the transport layer rather than building new transport infrastructure.
 
-### MCP Transport Adapter (spec-only, not yet implemented)
+### MCP Transport Adapter
 
-URP messages can be carried over the Model Context Protocol (MCP) by wrapping them as MCP tool calls. This allows URP claim accountability to be added to any MCP-connected agent workflow without a separate transport layer.
+URP ToolReceipts are carried as `_meta["urp:tool_receipt"]` on MCP `CallToolResult` responses. This is the standard MCP mechanism for passing metadata to client applications without exposing it to the model.
 
-The mapping is:
+**Server-side protocol:** When an MCP server completes a tool call, it creates a ToolReceipt using `wrap_tool_call()` (or `wrap_mcp_tool_result()` for the full `CallToolResult` shape). The receipt is serialised via `to_dict()` and placed in `_meta["urp:tool_receipt"]`.
 
-| URP operation | MCP equivalent |
-|---------------|----------------|
-| Submit claim | Call tool: urp_submit_claim, arguments: {claim: ClaimMessage} |
-| Challenge claim | Call tool: urp_challenge_claim, arguments: {claim_id: str, response: ResponseMessage} |
-| Verify claim | Call tool: urp_verify_claim, arguments: {claim_id: str, response: ResponseMessage} |
-| Settle claim | Call tool: urp_settle_claim, arguments: {settlement: SettlementMessage} |
-| Get capability | Call tool: urp_get_capability, returns: AgentCapability |
+**Client-side protocol:** An MCP client receiving a `CallToolResult` checks `_meta` for the key `urp:tool_receipt`. If present, it deserialises via `ToolReceipt.from_dict()` and can verify using `ToolReceiptVerifier.verify()`.
 
-An MCP server implementing URP would expose these five tools. Any MCP-connected agent can then participate in the URP claim lifecycle without a direct WebSocket connection.
+**End-to-end flow:**
 
-This adapter is not yet implemented. It is described here to establish the intended integration path and to invite implementation contributions. See [ROADMAP.md](ROADMAP.md) for planned work.
+| Step | Function | Description |
+|------|----------|-------------|
+| 1. Wrap | `wrap_tool_call()` | Server creates ToolReceipt from tool invocation |
+| 2. Embed | `wrap_mcp_tool_result()` | Server builds CallToolResult with receipt in `_meta` |
+| 3. Extract | `extract_tool_receipt()` | Client recovers ToolReceipt from `_meta` |
+| 4. Verify | `verifier.verify(receipt)` | Client replays tool and compares output hash |
+
+**Implementation:** `urp/mcp_adapter.py` — `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`.
 
 ### A2A Transport Adapter (spec-only, not yet implemented)
 
