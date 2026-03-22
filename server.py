@@ -29,6 +29,7 @@ from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
 from urp.message import PROTOCOL_VERSION, URPMessage
 from urp.structured_claim import StructuredClaim, ToolOutputEquals, ValueComparison, Compound, LogicalOp, ComparisonOp
 from urp.claim_verifier import match_claim, PropStatus
+from urp.a2a_adapter import urp_capability_to_a2a_card
 from urp.verify import ToolReceiptVerifier, VerificationStatus
 
 app = FastAPI(title="URP Simulation Server")
@@ -755,6 +756,53 @@ async def urp_capability():
         },
     )
     return JSONResponse(content=capability.to_dict())
+
+
+def _build_capability() -> AgentCapability:
+    """Build the server's AgentCapability declaration (shared by both endpoints)."""
+    return AgentCapability(
+        protocol_version=PROTOCOL_VERSION,
+        agent=AgentIdentity(
+            id="urp-demo-server",
+            name="URP Demo Server",
+            version=PROTOCOL_VERSION,
+        ),
+        supported_claim_types=[ClaimType.ASSERTION],
+        supported_claim_kinds=[
+            ClaimKind.TOOL_OUTPUT,
+            ClaimKind.FACTUAL_ASSERTION,
+            ClaimKind.DATA_INTEGRITY,
+        ],
+        accepted_evidence_types=[
+            EvidenceType.TOOL_RECEIPT,
+            EvidenceType.PROOF_REFERENCE,
+        ],
+        minimum_evidence_strength=EvidenceStrength.UNSIGNED,
+        stake_policy=StakePolicy(
+            required=True,
+            minimum_amount=0.1,
+            currency="URC",
+        ),
+        compatible_protocol_versions=["0.2.0", "0.3.0"],
+        metadata={
+            "demo": True,
+            "deterministic_tools": list(BUILTIN_TOOLS.keys()),
+            "live_url": "https://urp-core-production.up.railway.app",
+            "source": "https://github.com/Spudbe/urp-core",
+        },
+    )
+
+
+@app.get("/.well-known/agent-card.json")
+async def agent_card():
+    """Serve an A2A-compatible AgentCard for this URP instance.
+
+    Translates the server's AgentCapability into the A2A AgentCard format,
+    enabling discovery by A2A-compatible clients.
+    """
+    capability = _build_capability()
+    card = urp_capability_to_a2a_card(capability)
+    return JSONResponse(content=card)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

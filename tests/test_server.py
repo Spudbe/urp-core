@@ -215,3 +215,31 @@ class TestCapabilityEndpoint:
         cap = AgentCapability.from_dict(data)
         assert cap.protocol_version == "0.3.0"
         assert cap.agent.id == "urp-demo-server"
+
+
+class TestAgentCardEndpoint:
+    """The /.well-known/agent-card.json endpoint serves an A2A AgentCard."""
+
+    def test_agent_card_returns_200_json(self, client):
+        resp = client.get("/.well-known/agent-card.json")
+        assert resp.status_code == 200
+        assert "application/json" in resp.headers["content-type"]
+
+    def test_agent_card_has_a2a_fields(self, client):
+        data = client.get("/.well-known/agent-card.json").json()
+        assert "name" in data
+        assert "description" in data
+        assert "skills" in data
+        assert "supportedInterfaces" in data
+
+    def test_agent_card_has_urp_extension(self, client):
+        data = client.get("/.well-known/agent-card.json").json()
+        extensions = data.get("capabilities", {}).get("extensions", [])
+        urp_ext = [e for e in extensions if e.get("uri") == "urn:urp:agent-capability"]
+        assert len(urp_ext) == 1
+
+    def test_agent_card_round_trips_to_capability(self, client):
+        from urp.a2a_adapter import a2a_card_to_urp_capability
+        data = client.get("/.well-known/agent-card.json").json()
+        cap = a2a_card_to_urp_capability(data)
+        assert cap.protocol_version == "0.3.0"
