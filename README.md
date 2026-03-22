@@ -94,6 +94,21 @@ python simulations/ollama_demo.py
 
 Set `OLLAMA_HOST` if Ollama is not running on the default `http://localhost:11434`.
 
+### OpenAI
+
+URP works with OpenAI models. The adapter uses `urllib` (stdlib) — the `openai` package is not required.
+
+```bash
+export OPENAI_API_KEY=your_key_here
+```
+
+To use OpenAI instead of Groq, replace `GroqAdapter()` with `OpenAIAdapter()` in any simulation script:
+
+```python
+from urp.llm import OpenAIAdapter
+llm = OpenAIAdapter()  # defaults to gpt-4o-mini
+```
+
 ## Web Interface
 
 A browser-based interface streams simulation progress in real time using Server-Sent Events. Three scenarios run back to back — easy claim, contested claim, and false claim — showing the full claim lifecycle with live balance updates.

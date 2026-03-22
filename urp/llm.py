@@ -138,3 +138,74 @@ class OllamaAdapter(LLMAdapter):
             ) from exc
 
         return body["message"]["content"].strip()
+
+
+class OpenAIAdapter(LLMAdapter):
+    """LLM adapter that calls the OpenAI API using only the Python standard library.
+
+    Uses ``urllib`` for HTTP requests — the ``openai`` package is not required.
+
+    Args:
+        model: The OpenAI model identifier to use. Defaults to ``"gpt-4o-mini"``.
+        api_key: OpenAI API key. Defaults to the ``OPENAI_API_KEY`` environment variable.
+
+    Raises:
+        RuntimeError: If no API key is provided or found in the environment.
+    """
+
+    def __init__(self, model: str = "gpt-4o-mini", api_key: str | None = None) -> None:
+        self.model = model
+        self._api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        if not self._api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY environment variable not set. "
+                "Get a key at https://platform.openai.com"
+            )
+
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """Send a chat completion request to the OpenAI API.
+
+        Args:
+            system_prompt: Instructions that set the model's behaviour and role.
+            user_prompt: The user-facing query or task for the model to respond to.
+
+        Returns:
+            The model's text response as a string.
+
+        Raises:
+            RuntimeError: If the OpenAI API request fails.
+        """
+        url = "https://api.openai.com/v1/chat/completions"
+        payload = json.dumps({
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "max_tokens": 512,
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self._api_key}",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
+            raise RuntimeError(
+                f"OpenAI API returned HTTP {exc.code}: {error_body}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(
+                f"Could not connect to OpenAI API: {exc}"
+            ) from exc
+
+        return body["choices"][0]["message"]["content"].strip()

@@ -11,7 +11,7 @@ from urp.core import (
     ProofReference,
     Stake,
 )
-from urp.llm import OllamaAdapter
+from urp.llm import OllamaAdapter, OpenAIAdapter
 from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
 
 
@@ -143,3 +143,19 @@ class TestOllamaAdapter:
         adapter = OllamaAdapter(model="mistral", host="http://myhost:8080")
         assert adapter.host == "http://myhost:8080"
         assert adapter.model == "mistral"
+
+
+class TestOpenAIAdapter:
+    def test_raises_runtime_error_when_no_api_key(self, monkeypatch):
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        with pytest.raises(RuntimeError, match="OPENAI_API_KEY environment variable not set"):
+            OpenAIAdapter()
+
+    def test_default_model(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        adapter = OpenAIAdapter()
+        assert adapter.model == "gpt-4o-mini"
+
+    def test_custom_model_and_key(self):
+        adapter = OpenAIAdapter(model="gpt-4o", api_key="sk-test")
+        assert adapter.model == "gpt-4o"

@@ -12,6 +12,9 @@ dependencies = [
 [project.optional-dependencies]
 server = ["fastapi>=0.115.0", "uvicorn>=0.30.0"]
 demo = ["groq>=0.4.0"]
+# OpenAIAdapter uses urllib (stdlib) so the openai package is not required at runtime.
+# This extra is provided for users who prefer the official SDK in their own code.
+openai = ["openai>=1.0.0"]
 
 [project.urls]
 Repository = "https://github.com/Spudbe/urp-core"
