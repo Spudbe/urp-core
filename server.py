@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from urp.core import Claim, ClaimType, Decision, ProofReference, Response, Stake
@@ -268,6 +268,13 @@ async def _run_simulation(custom_claim: Optional[str] = None):
 
 # ---------- Routes ----------
 
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    import pathlib
+    html = pathlib.Path("static/index.html").read_text(encoding="utf-8")
+    return HTMLResponse(content=html)
+
+
 @app.get("/run-simulation")
 async def run_simulation(claim: Optional[str] = Query(default=None)):
     return StreamingResponse(
@@ -276,7 +283,7 @@ async def run_simulation(claim: Optional[str] = Query(default=None)):
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn
