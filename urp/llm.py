@@ -7,7 +7,10 @@ subclassing ``LLMAdapter`` and implementing the ``complete`` method.
 
 from __future__ import annotations
 
+import json
 import os
+import urllib.request
+import urllib.error
 from abc import ABC, abstractmethod
 
 
@@ -72,3 +75,66 @@ class GroqAdapter(LLMAdapter):
             max_tokens=512,
         )
         return response.choices[0].message.content.strip()
+
+
+class OllamaAdapter(LLMAdapter):
+    """LLM adapter that calls a local Ollama instance via its HTTP API.
+
+    Uses only the Python standard library (``urllib``). No extra packages required.
+
+    Args:
+        model: The Ollama model name to use. Defaults to ``"llama3"``.
+        host: The Ollama server URL. Defaults to the ``OLLAMA_HOST`` environment
+            variable, falling back to ``"http://localhost:11434"``.
+    """
+
+    def __init__(self, model: str = "llama3", host: str | None = None) -> None:
+        self.model = model
+        self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+        self.host = self.host.rstrip("/")
+
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """Send a chat completion request to the local Ollama server.
+
+        Args:
+            system_prompt: Instructions that set the model's behaviour and role.
+            user_prompt: The user-facing query or task for the model to respond to.
+
+        Returns:
+            The model's text response as a string.
+
+        Raises:
+            RuntimeError: If the Ollama server is not reachable or returns an error.
+        """
+        url = f"{self.host}/api/chat"
+        payload = json.dumps({
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "stream": False,
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.URLError as exc:
+            raise RuntimeError(
+                f"Could not connect to Ollama at {self.host}. "
+                f"Make sure Ollama is running (ollama serve) and the host is correct. "
+                f"Download Ollama at https://ollama.com. Error: {exc}"
+            ) from exc
+        except Exception as exc:
+            raise RuntimeError(
+                f"Ollama request to {url} failed: {exc}"
+            ) from exc
+
+        return body["message"]["content"].strip()

@@ -1,5 +1,6 @@
-"""Tests for urp.llm_agents — LLM response parsing and agent behaviour."""
+"""Tests for urp.llm_agents and urp.llm adapters."""
 
+import pytest
 from unittest.mock import MagicMock
 
 from urp.core import (
@@ -10,6 +11,7 @@ from urp.core import (
     ProofReference,
     Stake,
 )
+from urp.llm import OllamaAdapter
 from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
 
 
@@ -100,3 +102,20 @@ class TestResearcherLLM:
         assert receipt.provider_id == "test-model"
         assert receipt.input_inline["user_prompt"] == "What is 2+2?"
         assert receipt.output_inline["answer"] == "test answer"
+
+
+class TestOllamaAdapter:
+    def test_raises_runtime_error_when_connection_fails(self):
+        adapter = OllamaAdapter(model="llama3", host="http://127.0.0.1:1")
+        with pytest.raises(RuntimeError, match="Could not connect to Ollama"):
+            adapter.complete("system", "user")
+
+    def test_default_host(self):
+        adapter = OllamaAdapter()
+        assert adapter.host == "http://localhost:11434"
+        assert adapter.model == "llama3"
+
+    def test_custom_host(self):
+        adapter = OllamaAdapter(model="mistral", host="http://myhost:8080")
+        assert adapter.host == "http://myhost:8080"
+        assert adapter.model == "mistral"

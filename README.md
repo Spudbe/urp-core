@@ -82,6 +82,18 @@ python simulations/llm_simulation.py
 
 `GROQ_API_KEY` is required. The demo will not run without it. Get a free key at [console.groq.com](https://console.groq.com).
 
+### Ollama (Local Models)
+
+URP also works with local models via [Ollama](https://ollama.com). No API key needed.
+
+```bash
+# Install Ollama from https://ollama.com, then:
+ollama pull llama3
+python simulations/ollama_demo.py
+```
+
+Set `OLLAMA_HOST` if Ollama is not running on the default `http://localhost:11434`.
+
 ## Web Interface
 
 A browser-based interface streams simulation progress in real time using Server-Sent Events. Three scenarios run back to back — easy claim, contested claim, and false claim — showing the full claim lifecycle with live balance updates.
