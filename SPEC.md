@@ -190,11 +190,23 @@ URP ToolReceipts are carried as `_meta["urp:tool_receipt"]` on MCP `CallToolResu
 
 **Implementation:** `urp/mcp_adapter.py` — `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`.
 
-### A2A Transport Adapter (spec-only, not yet implemented)
+### A2A Transport Adapter
 
-URP messages can also be carried over the Agent-to-Agent Protocol (A2A) as task artifacts. A URP claim becomes an A2A task; the response and settlement become task artifacts returned by the delegated agent. A2A's signed agent cards can carry AgentCapability declarations, enabling capability discovery before claim submission.
+URP AgentCapability is embedded as an A2A extension with URI `urn:urp:agent-capability` inside `AgentCard.capabilities.extensions`.
 
-This adapter is not yet implemented.
+**URP → A2A translation:** `urp_capability_to_a2a_card()` generates an A2A AgentCard with:
+- URP skills mapped from `ClaimKind` values (one skill per kind with `urp_claim_kind:` tag prefix)
+- Full `AgentCapability` embedded in extension `params` as `urpCapabilityInline`
+- Interface entry with `protocolBinding: "URP"` for protocol identification
+- Skill tags prefixed with `urp_claim_type:`, `urp_evidence:`, and `urp_claim_kind:` for discovery
+
+**A2A → URP translation:** `a2a_card_to_urp_capability()` extracts `AgentCapability` from the `urn:urp:agent-capability` extension's `urpCapabilityInline` field. Fallback: reconstructs capability from skill tags prefixed with `urp_claim_kind:`, `urp_claim_type:`, and `urp_evidence:`.
+
+**Discovery endpoints:** URP serves `/.well-known/urp-capability.json` (native URP format) and `/.well-known/agent-card.json` (A2A-compatible format). Both derive from the same `AgentCapability` object.
+
+**Signing caveat:** A2A requires RFC 8785 (JCS) for signed agent cards. URP currently uses sorted-key compact JSON (`json.dumps(sort_keys=True, separators=(",",":"))`). Signatures are NOT bridged between the two systems. Full JCS adoption is deferred to v0.6.
+
+**Implementation:** `urp/a2a_adapter.py` — `urp_capability_to_a2a_card()`, `a2a_card_to_urp_capability()`.
 
 ## AgentCapability
 
