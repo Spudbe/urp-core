@@ -35,13 +35,13 @@ class GroqAdapter(LLMAdapter):
     """LLM adapter that calls the Groq API using the ``groq`` Python package.
 
     Reads the API key from the ``GROQ_API_KEY`` environment variable.
-    Uses the ``llama3-8b-8192`` model by default.
+    Uses the ``llama-3.3-70b-versatile`` model by default.
 
     Args:
-        model: The Groq model identifier to use. Defaults to ``"llama3-8b-8192"``.
+        model: The Groq model identifier to use. Defaults to ``"llama-3.3-70b-versatile"``.
     """
 
-    def __init__(self, model: str = "llama3-8b-8192") -> None:
+    def __init__(self, model: str = "llama-3.3-70b-versatile") -> None:
         self.model = model
         api_key = os.environ.get("GROQ_API_KEY")
         if not api_key:
