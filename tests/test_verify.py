@@ -166,7 +166,7 @@ class TestToolReceiptVerifier:
             output_inline={"input": 10, "result": 99, "algorithm": "iterative"},
         )
         result = v.verify(receipt)
-        assert result.status == VerificationStatus.HASH_MISMATCH
+        assert result.status == VerificationStatus.OUTPUT_HASH_MISMATCH
         assert result.actual_output_hash != result.expected_output_hash
 
     def test_tool_not_registered(self):
@@ -207,6 +207,42 @@ class TestToolReceiptVerifier:
         v = _make_verifier()
         receipt = _make_receipt(
             nondeterminism_class=NondeterminismClass.MODEL_BASED,
+            replay_class=ReplayClass.STRONG,
+        )
+        result = v.verify(receipt)
+        assert result.status == VerificationStatus.CLASSIFICATION_INVALID
+
+    def test_classification_invalid_randomized_strong(self):
+        v = _make_verifier()
+        receipt = _make_receipt(
+            nondeterminism_class=NondeterminismClass.RANDOMIZED,
+            replay_class=ReplayClass.STRONG,
+        )
+        result = v.verify(receipt)
+        assert result.status == VerificationStatus.CLASSIFICATION_INVALID
+
+    def test_classification_invalid_time_dependent_strong(self):
+        v = _make_verifier()
+        receipt = _make_receipt(
+            nondeterminism_class=NondeterminismClass.TIME_DEPENDENT,
+            replay_class=ReplayClass.STRONG,
+        )
+        result = v.verify(receipt)
+        assert result.status == VerificationStatus.CLASSIFICATION_INVALID
+
+    def test_classification_invalid_environment_dependent_strong(self):
+        v = _make_verifier()
+        receipt = _make_receipt(
+            nondeterminism_class=NondeterminismClass.ENVIRONMENT_DEPENDENT,
+            replay_class=ReplayClass.STRONG,
+        )
+        result = v.verify(receipt)
+        assert result.status == VerificationStatus.CLASSIFICATION_INVALID
+
+    def test_classification_invalid_side_effect_with_strong(self):
+        v = _make_verifier()
+        receipt = _make_receipt(
+            side_effect_class=SideEffectClass.EXTERNAL_WRITE,
             replay_class=ReplayClass.STRONG,
         )
         result = v.verify(receipt)

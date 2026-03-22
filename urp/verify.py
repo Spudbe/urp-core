@@ -20,13 +20,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from urp.core import NondeterminismClass, ReplayClass, ToolReceipt
+from urp.core import NondeterminismClass, ReplayClass, SideEffectClass, ToolReceipt
 
 
 class VerificationStatus(Enum):
     """Outcome of a ToolReceipt verification attempt."""
     VERIFIED_EXACT = "verified_exact"
-    HASH_MISMATCH = "hash_mismatch"
+    OUTPUT_HASH_MISMATCH = "output_hash_mismatch"
     INPUT_HASH_MISMATCH = "input_hash_mismatch"
     NOT_REPLAYABLE = "not_replayable"
     TOOL_NOT_REGISTERED = "tool_not_registered"
@@ -129,6 +129,15 @@ class ToolReceiptVerifier:
 
         Returns a VerificationResult with CLASSIFICATION_INVALID if there is
         an inconsistency, or None if the classification is valid.
+
+        Rules:
+        - DETERMINISTIC + (WEAK | NONE) is contradictory.
+        - MODEL_BASED + STRONG is contradictory.
+        - RANDOMIZED + STRONG is contradictory.
+        - TIME_DEPENDENT + STRONG is contradictory.
+        - ENVIRONMENT_DEPENDENT + STRONG is contradictory.
+        - Any side_effect_class other than NONE with STRONG replay is
+          contradictory (side effects make replay unsafe or irreproducible).
         """
         # A DETERMINISTIC receipt should have STRONG replay, not WEAK or NONE.
         if (
@@ -147,9 +156,15 @@ class ToolReceiptVerifier:
                 ),
             )
 
-        # MODEL_BASED receipts should not claim STRONG replay.
+        # Non-deterministic tools should not claim STRONG replay.
+        _no_strong = (
+            NondeterminismClass.MODEL_BASED,
+            NondeterminismClass.RANDOMIZED,
+            NondeterminismClass.TIME_DEPENDENT,
+            NondeterminismClass.ENVIRONMENT_DEPENDENT,
+        )
         if (
-            receipt.nondeterminism_class == NondeterminismClass.MODEL_BASED
+            receipt.nondeterminism_class in _no_strong
             and receipt.replay_class == ReplayClass.STRONG
         ):
             return VerificationResult(
@@ -159,8 +174,25 @@ class ToolReceiptVerifier:
                 detail=(
                     f"Inconsistent classification: nondeterminism_class is "
                     f"{receipt.nondeterminism_class.value} but replay_class is "
-                    f"{receipt.replay_class.value}. Model-based tools cannot "
-                    f"guarantee deterministic replay."
+                    f"{receipt.replay_class.value}. Non-deterministic tools "
+                    f"cannot guarantee identical replay output."
+                ),
+            )
+
+        # Tools with side effects should not claim STRONG replay.
+        if (
+            receipt.side_effect_class != SideEffectClass.NONE
+            and receipt.replay_class == ReplayClass.STRONG
+        ):
+            return VerificationResult(
+                status=VerificationStatus.CLASSIFICATION_INVALID,
+                receipt_id=receipt.receipt_id,
+                expected_output_hash=receipt.output_sha256,
+                detail=(
+                    f"Inconsistent classification: side_effect_class is "
+                    f"{receipt.side_effect_class.value} but replay_class is "
+                    f"{receipt.replay_class.value}. Tools with side effects "
+                    f"cannot safely guarantee deterministic replay."
                 ),
             )
 
@@ -240,7 +272,7 @@ class ToolReceiptVerifier:
             )
         else:
             return VerificationResult(
-                status=VerificationStatus.HASH_MISMATCH,
+                status=VerificationStatus.OUTPUT_HASH_MISMATCH,
                 receipt_id=receipt.receipt_id,
                 expected_output_hash=receipt.output_sha256,
                 actual_output_hash=actual_hash,
