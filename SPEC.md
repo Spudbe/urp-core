@@ -283,3 +283,31 @@ All list fields (supported_claim_types, supported_claim_kinds, accepted_evidence
   "compatible_protocol_versions": ["0.2.0", "0.3.0"]
 }
 ```
+
+## Structured Claims (v0.5)
+
+StructuredClaim replaces free-text `statement` strings with machine-parseable propositions that can be mechanically matched against ToolReceipt evidence. A Claim may carry an optional `structured_claim` dict alongside its existing `statement` field.
+
+### Proposition Types
+
+**ToolOutputEquals** — Asserts that a named tool, given specific inputs, produces a specific output. Matched against ToolReceipts by tool_name + input_inline + output_inline.
+
+**ValueComparison** — Asserts a comparison between a value extracted from tool output and an expected value. Supports operators: eq, ne, gt, gte, lt, lte, contains, not_contains.
+
+**Compound** — Combines multiple propositions with a logical operator (and, or, not). Enables claims like "tool A returned X AND tool B returned Y." Recursive — sub-propositions can themselves be compounds.
+
+### Claim-to-Evidence Matching
+
+The matching algorithm in `urp/claim_verifier.py` works as follows:
+
+1. For each proposition in the structured claim, search the Claim's `evidence` list for a ToolReceipt whose `tool_name` and `input_inline` match.
+2. For `tool_output_equals`: compare the receipt's `output_inline` against the expected output. Match is exact (all keys and values must be equal).
+3. For `value_comparison`: extract the specified field from the receipt's output and apply the comparison operator.
+4. For `compound`: evaluate sub-propositions recursively and combine with the logical operator.
+
+Results use three-valued logic: `true` (evidence confirms the proposition), `false` (evidence contradicts it), or `unknown` (no matching evidence found).
+
+### Implementation
+
+- `urp/structured_claim.py` — StructuredClaim dataclass, proposition types, serialisation
+- `urp/claim_verifier.py` — ClaimVerifier with `verify_structured()` method for claim-to-evidence matching
