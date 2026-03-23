@@ -5,12 +5,11 @@ and convenience functions for signing ToolReceipts and TRPMessage envelopes.
 
 v0.4 scope:
 - Ed25519 only (OKP key type)
-- Canonical JSON via sorted keys + compact separators (not RFC 8785 JCS)
+- RFC 8785 JCS canonicalization for deterministic byte representation
 - Detached JWS (payload not embedded in the token)
 - Evidence strength auto-escalation for receipts
 
-Deferred to v0.5:
-- RFC 8785 (JCS) canonicalization
+Deferred to future versions:
 - DID-based identity and key resolution
 - Timestamp authorities
 - Zero-knowledge selective disclosure
@@ -33,14 +32,12 @@ from typing import Optional
 
 from jwcrypto import jwk, jws
 
+from trp.canonical import canonical_bytes
 from trp.core import EvidenceStrength, JWSSignature, ToolReceipt
 
 
 def canonical_json_bytes(obj: dict) -> bytes:
-    """Serialise a dict to canonical JSON bytes.
-
-    Uses sorted keys and compact separators to produce a deterministic
-    byte representation suitable for signing.
+    """RFC 8785 JCS canonical bytes for signing.
 
     Args:
         obj: The dict to serialise.
@@ -48,7 +45,7 @@ def canonical_json_bytes(obj: dict) -> bytes:
     Returns:
         UTF-8 encoded canonical JSON bytes.
     """
-    return json.dumps(obj, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return canonical_bytes(obj)
 
 
 def generate_ed25519_keypair(kid: Optional[str] = None) -> tuple[jwk.JWK, jwk.JWK]:

@@ -1,12 +1,12 @@
 # trp/core.py
 
 from __future__ import annotations
-import hashlib
-import json
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
+
+from trp.canonical import sha256_hex
 
 
 class ClaimType(Enum):
@@ -132,15 +132,13 @@ class ToolReceipt:
 
     @classmethod
     def make_input_hash(cls, inputs: dict) -> str:
-        """Return 'sha256:<hex>' hash of canonical JSON of inputs."""
-        canonical = json.dumps(inputs, sort_keys=True, separators=(",", ":"))
-        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+        """Return 'sha256:<hex>' hash of RFC 8785 JCS canonical bytes of inputs."""
+        return sha256_hex(inputs)
 
     @classmethod
     def make_output_hash(cls, output: dict) -> str:
-        """Return 'sha256:<hex>' hash of canonical JSON of output."""
-        canonical = json.dumps(output, sort_keys=True, separators=(",", ":"))
-        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+        """Return 'sha256:<hex>' hash of RFC 8785 JCS canonical bytes of output."""
+        return sha256_hex(output)
 
     def to_dict(self) -> dict:
         d = {

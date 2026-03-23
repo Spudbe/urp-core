@@ -84,8 +84,8 @@ def _make_verifier() -> ToolReceiptVerifier:
 class TestHashVectors:
     """Deterministic hash test vectors for ToolReceipt hashing.
 
-    These use json.dumps(data, sort_keys=True, separators=(",", ":"))
-    as the canonical form, then SHA-256 hex digest prefixed with "sha256:".
+    These use RFC 8785 JCS canonicalization, then SHA-256 hex digest
+    prefixed with "sha256:".
     """
 
     def test_fibonacci_input_hash(self):

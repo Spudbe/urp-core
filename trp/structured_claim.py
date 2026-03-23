@@ -16,33 +16,30 @@ Each proposition supports:
 
 Deferred to later versions:
 - ``FactualAssertion`` (SPO triples) — no mechanical verification path yet
-- RFC 8785 (JCS) canonicalization — uses TRP's existing sorted-key compact JSON
 - NLP parsing of free-text into structured claims
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional, Union
 
+from trp.canonical import canonical_str, sha256_hex
+
 
 # ---------------------------------------------------------------------------
-# Canonical JSON (matches TRP's existing pattern in core.py)
+# Canonical JSON (RFC 8785 JCS via trp.canonical)
 # ---------------------------------------------------------------------------
 
 def _canonical_json(obj: Any) -> str:
-    """TRP canonical JSON: sorted keys, compact separators."""
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"))
+    """RFC 8785 JCS canonical JSON string."""
+    return canonical_str(obj)
 
 
 def _sha256_of(obj: Any) -> str:
-    """Return 'sha256:<hex>' of canonical JSON."""
-    return "sha256:" + hashlib.sha256(
-        _canonical_json(obj).encode("utf-8")
-    ).hexdigest()
+    """Return 'sha256:<hex>' of JCS canonical bytes."""
+    return sha256_hex(obj)
 
 
 # ---------------------------------------------------------------------------
