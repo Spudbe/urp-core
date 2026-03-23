@@ -317,20 +317,26 @@ async def _run_deterministic_demo():
         output_inline=output,
     )
 
-    proof_hash = hashlib.sha256(
-        json.dumps(output, sort_keys=True).encode()
-    ).hexdigest()
-    claim = Claim(
+    sc = StructuredClaim(
+        sc_version="0.5",
+        kind="tool_output",
+        proposition=ToolOutputEquals(
+            tool_name="compute_fibonacci",
+            input=inputs,
+            expected_output=output,
+        ),
+    )
+    claim = Claim.create(
         id="det-claim-001",
-        statement="The 10th Fibonacci number is 55",
         type=ClaimType.ASSERTION,
         proof_ref=ProofReference(
-            hash=proof_hash,
+            hash=ToolReceipt.make_output_hash(output).removeprefix("sha256:"),
             location="local://compute_fibonacci",
             summary=f"Fibonacci(10) = {output['result']}",
             confidence_score=1.0,
         ),
         stake=Stake(amount=1.0),
+        structured_claim=sc.to_dict(),
         evidence=[receipt],
     )
 
@@ -343,17 +349,6 @@ async def _run_deterministic_demo():
         "message": json.loads(msg_claim.to_json(compact=False)),
     })
     ledger.withdraw(researcher_name, claim.stake.amount)
-
-    # --- StructuredClaim: machine-parseable proposition ---
-    sc = StructuredClaim(
-        sc_version="0.5",
-        kind="tool_output",
-        proposition=ToolOutputEquals(
-            tool_name="compute_fibonacci",
-            input=inputs,
-            expected_output=output,
-        ),
-    )
     yield _sse("structured_claim", {
         "scenario": 1,
         "claim": sc.to_dict(),
@@ -502,20 +497,26 @@ async def _run_deterministic_demo():
         output_inline=tampered_output,
     )
 
-    tampered_proof_hash = hashlib.sha256(
-        json.dumps(tampered_output, sort_keys=True).encode()
-    ).hexdigest()
-    tampered_claim = Claim(
+    sc_tampered = StructuredClaim(
+        sc_version="0.5",
+        kind="tool_output",
+        proposition=ToolOutputEquals(
+            tool_name="compute_fibonacci",
+            input={"n": 10},
+            expected_output=tampered_output,
+        ),
+    )
+    tampered_claim = Claim.create(
         id="det-claim-002-tampered",
-        statement="The 10th Fibonacci number is 99",
         type=ClaimType.ASSERTION,
         proof_ref=ProofReference(
-            hash=tampered_proof_hash,
+            hash=ToolReceipt.make_output_hash(tampered_output).removeprefix("sha256:"),
             location="local://compute_fibonacci",
             summary="Fibonacci(10) = 99 [TAMPERED]",
             confidence_score=1.0,
         ),
         stake=Stake(amount=1.0),
+        structured_claim=sc_tampered.to_dict(),
         evidence=[tampered_receipt],
     )
 
@@ -528,17 +529,6 @@ async def _run_deterministic_demo():
         "message": json.loads(msg_tampered.to_json(compact=False)),
     })
     ledger.withdraw(researcher_name, tampered_claim.stake.amount)
-
-    # --- StructuredClaim for tampered scenario ---
-    sc_tampered = StructuredClaim(
-        sc_version="0.5",
-        kind="tool_output",
-        proposition=ToolOutputEquals(
-            tool_name="compute_fibonacci",
-            input={"n": 10},
-            expected_output=tampered_output,
-        ),
-    )
     yield _sse("structured_claim", {
         "scenario": 2,
         "claim": sc_tampered.to_dict(),

@@ -5,6 +5,7 @@ from trp.core import (
     SettlementMessage, SettlementOutcome,
     ClaimKind, EvidenceType, AgentIdentity, StakePolicy, JWSSignature, AgentCapability,
 )
+from trp.structured_claim import StructuredClaim, ToolOutputEquals
 
 
 class TestProofReference:
@@ -411,3 +412,63 @@ class TestAgentCapability:
     def test_rejects_empty_compatible_protocol_versions(self):
         with pytest.raises(ValueError, match="compatible_protocol_versions"):
             _make_capability(compatible_protocol_versions=[])
+
+
+class TestClaimCreate:
+    """Tests for Claim.create() factory method."""
+
+    def _sc_dict(self):
+        sc = StructuredClaim(
+            sc_version="0.5",
+            kind="tool_output",
+            proposition=ToolOutputEquals(
+                tool_name="compute_fibonacci",
+                input={"n": 10},
+                expected_output={"input": 10, "result": 55, "algorithm": "iterative"},
+            ),
+        )
+        return sc.to_dict()
+
+    def _proof_ref(self):
+        return ProofReference(hash="abc", location="local://test", summary="test")
+
+    def test_claim_create_requires_structured_claim(self):
+        sc_dict = self._sc_dict()
+        claim = Claim.create(
+            id="test-001",
+            type=ClaimType.ASSERTION,
+            proof_ref=self._proof_ref(),
+            stake=Stake(amount=1.0),
+            structured_claim=sc_dict,
+        )
+        assert claim.structured_claim == sc_dict
+        assert claim.statement  # auto-generated, non-empty
+        assert "compute_fibonacci" in claim.statement
+
+    def test_claim_create_with_explicit_statement(self):
+        sc_dict = self._sc_dict()
+        claim = Claim.create(
+            id="test-002",
+            type=ClaimType.ASSERTION,
+            proof_ref=self._proof_ref(),
+            stake=Stake(amount=1.0),
+            structured_claim=sc_dict,
+            statement="My explicit statement",
+        )
+        assert claim.statement == "My explicit statement"
+        assert claim.structured_claim == sc_dict
+
+    def test_claim_create_round_trip(self):
+        sc_dict = self._sc_dict()
+        claim = Claim.create(
+            id="test-003",
+            type=ClaimType.ASSERTION,
+            proof_ref=self._proof_ref(),
+            stake=Stake(amount=1.0),
+            structured_claim=sc_dict,
+        )
+        d = claim.to_dict()
+        restored = Claim.from_dict(d)
+        assert restored.structured_claim == sc_dict
+        assert restored.statement == claim.statement
+        assert restored.id == "test-003"

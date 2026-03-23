@@ -295,6 +295,29 @@ class Claim:
             structured_claim=data.get("structured_claim"),
         )
 
+    @classmethod
+    def create(cls, id: str, type: ClaimType, proof_ref: ProofReference,
+               stake: Stake, structured_claim: dict, evidence: list = None,
+               statement: str = "") -> "Claim":
+        """Create a new Claim with a required StructuredClaim.
+
+        If statement is empty, auto-generates from the structured claim
+        using render_statement().
+        """
+        from trp.structured_claim import StructuredClaim as SC
+        if not statement:
+            try:
+                sc = SC.from_dict(structured_claim)
+                statement = sc.render_statement()
+            except Exception:
+                statement = str(structured_claim)
+        if evidence is None:
+            evidence = []
+        return cls(
+            id=id, statement=statement, type=type, proof_ref=proof_ref,
+            stake=stake, evidence=evidence, structured_claim=structured_claim,
+        )
+
 
 @dataclass
 class Response:
