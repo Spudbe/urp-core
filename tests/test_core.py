@@ -2,7 +2,7 @@ import pytest
 from trp.core import (
     ProofReference, Stake, Claim, ClaimType, Decision, ToolReceipt,
     EvidenceStrength, NondeterminismClass, SideEffectClass, ReplayClass,
-    SettlementMessage, SettlementOutcome,
+    SettlementMessage, SettlementOutcome, EvidenceBundle,
     ClaimKind, EvidenceType, AgentIdentity, StakePolicy, JWSSignature, AgentCapability,
 )
 from trp.structured_claim import StructuredClaim, ToolOutputEquals
@@ -472,3 +472,47 @@ class TestClaimCreate:
         assert restored.structured_claim == sc_dict
         assert restored.statement == claim.statement
         assert restored.id == "test-003"
+
+
+class TestEvidenceBundle:
+    def test_create_empty_bundle(self):
+        b = EvidenceBundle(bundle_id="test-bundle")
+        assert b.bundle_id == "test-bundle"
+        assert b.receipts == []
+        assert b.document_hashes == {}
+
+    def test_auto_generates_bundle_id(self):
+        b = EvidenceBundle(bundle_id="")
+        assert b.bundle_id.startswith("bundle-")
+
+    def test_to_dict_round_trip(self):
+        tr = ToolReceipt(
+            receipt_id="r1", tool_name="test", tool_version="1.0",
+            provider_name="p", provider_id="p", protocol_family="local",
+            started_at="2026-01-01T00:00:00Z",
+            input_inline={"x": 1}, output_inline={"y": 2},
+        )
+        b = EvidenceBundle(
+            bundle_id="b1",
+            receipts=[tr],
+            document_hashes={"report.pdf": "sha256:abc123"},
+            attestations=[{"signer": "alice", "statement": "verified"}],
+            notes="Test bundle",
+        )
+        d = b.to_dict()
+        restored = EvidenceBundle.from_dict(d)
+        assert restored.bundle_id == "b1"
+        assert len(restored.receipts) == 1
+        assert restored.document_hashes["report.pdf"] == "sha256:abc123"
+        assert restored.notes == "Test bundle"
+
+    def test_fingerprint_stable(self):
+        b1 = EvidenceBundle(bundle_id="fp-test", created_at="2026-01-01T00:00:00Z")
+        b2 = EvidenceBundle(bundle_id="fp-test", created_at="2026-01-01T00:00:00Z")
+        assert b1.fingerprint() == b2.fingerprint()
+
+    def test_fingerprint_changes_with_content(self):
+        b1 = EvidenceBundle(bundle_id="b", created_at="2026-01-01T00:00:00Z")
+        b2 = EvidenceBundle(bundle_id="b", created_at="2026-01-01T00:00:00Z",
+                           document_hashes={"file.txt": "sha256:xxx"})
+        assert b1.fingerprint() != b2.fingerprint()

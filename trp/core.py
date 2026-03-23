@@ -404,6 +404,66 @@ class SettlementMessage:
 
 
 @dataclass
+class EvidenceBundle:
+    """Composite evidence grouping multiple artifacts.
+
+    An EvidenceBundle packages ToolReceipts, external document hashes,
+    and signed attestations into a single verifiable unit. This makes
+    _meta less fragile — bundles can be stored as first-class artifacts
+    referenced by hash.
+
+    Attributes:
+        bundle_id: Unique bundle identifier.
+        receipts: List of ToolReceipt objects.
+        document_hashes: Dict mapping document names to their sha256 hashes.
+        attestations: List of free-form attestation dicts (e.g. signed statements).
+        created_at: ISO 8601 timestamp.
+        notes: Optional human-readable description.
+    """
+    bundle_id: str
+    receipts: list[ToolReceipt] = field(default_factory=list)
+    document_hashes: dict[str, str] = field(default_factory=dict)
+    attestations: list[dict] = field(default_factory=list)
+    created_at: str = ""
+    notes: str = ""
+
+    def __post_init__(self):
+        if not self.bundle_id:
+            self.bundle_id = f"bundle-{uuid.uuid4().hex[:12]}"
+        if not self.created_at:
+            from datetime import datetime, timezone
+            self.created_at = datetime.now(timezone.utc).isoformat()
+
+    def to_dict(self) -> dict:
+        d = {
+            "bundle_id": self.bundle_id,
+            "receipts": [r.to_dict() for r in self.receipts],
+            "document_hashes": self.document_hashes,
+            "attestations": self.attestations,
+            "created_at": self.created_at,
+        }
+        if self.notes:
+            d["notes"] = self.notes
+        return d
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "EvidenceBundle":
+        return cls(
+            bundle_id=data.get("bundle_id", ""),
+            receipts=[ToolReceipt.from_dict(r) for r in data.get("receipts", [])],
+            document_hashes=data.get("document_hashes", {}),
+            attestations=data.get("attestations", []),
+            created_at=data.get("created_at", ""),
+            notes=data.get("notes", ""),
+        )
+
+    def fingerprint(self) -> str:
+        """JCS canonical hash of the bundle for content addressing."""
+        from trp.canonical import sha256_hex
+        return sha256_hex(self.to_dict())
+
+
+@dataclass
 class AgentIdentity:
     """Identity of a TRP agent.
 

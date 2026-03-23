@@ -9,6 +9,7 @@ from trp.core import (
     Claim,
     ClaimKind,
     ClaimType,
+    EvidenceBundle,
     ToolReceipt,
     AgentCapability,
     SettlementMessage,
