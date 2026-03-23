@@ -1,4 +1,4 @@
-"""FastAPI server that streams URP simulation progress via Server-Sent Events."""
+"""FastAPI server that streams TRP simulation progress via Server-Sent Events."""
 
 import asyncio
 import json
@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from urp.core import (
+from trp.core import (
     AgentCapability,
     AgentIdentity,
     ClaimKind,
@@ -22,17 +22,17 @@ from urp.core import (
     SettlementOutcome,
     StakePolicy,
 )
-from urp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
-from urp.ledger import Ledger
-from urp.llm import GroqAdapter
-from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
-from urp.message import PROTOCOL_VERSION, URPMessage
-from urp.structured_claim import StructuredClaim, ToolOutputEquals, ValueComparison, Compound, LogicalOp, ComparisonOp
-from urp.claim_verifier import match_claim, PropStatus
-from urp.a2a_adapter import urp_capability_to_a2a_card
-from urp.verify import ToolReceiptVerifier, VerificationStatus
+from trp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
+from trp.ledger import Ledger
+from trp.llm import GroqAdapter
+from trp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
+from trp.message import PROTOCOL_VERSION, TRPMessage
+from trp.structured_claim import StructuredClaim, ToolOutputEquals, ValueComparison, Compound, LogicalOp, ComparisonOp
+from trp.claim_verifier import match_claim, PropStatus
+from trp.a2a_adapter import trp_capability_to_a2a_card
+from trp.verify import ToolReceiptVerifier, VerificationStatus
 
-app = FastAPI(title="URP Simulation Server")
+app = FastAPI(title="TRP Simulation Server")
 
 app.add_middleware(
     CORSMiddleware,
@@ -86,8 +86,8 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
     yield _sse("step", {"scenario": num, "step": 1, "label": "Researcher creates claim"})
     await asyncio.sleep(0)
     claim = await loop.run_in_executor(None, researcher.create_claim, query)
-    msg_claim = URPMessage("claim", claim, researcher.name)
-    yield _sse("urp_message", {
+    msg_claim = TRPMessage("claim", claim, researcher.name)
+    yield _sse("trp_message", {
         "scenario": num,
         "sender": researcher.name,
         "role": "researcher",
@@ -102,8 +102,8 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
     challenge_resp, challenger_reason = await loop.run_in_executor(
         None, challenger.evaluate_claim, claim, sceptical
     )
-    msg_challenge = URPMessage("response", challenge_resp, challenger.name)
-    yield _sse("urp_message", {
+    msg_challenge = TRPMessage("response", challenge_resp, challenger.name)
+    yield _sse("trp_message", {
         "scenario": num,
         "sender": challenger.name,
         "role": "challenger",
@@ -119,8 +119,8 @@ async def _run_scenario(loop, researcher, challenger, verifier, ledger, num, tit
     final_resp, verifier_reason = await loop.run_in_executor(
         None, verifier.evaluate_claim, claim
     )
-    msg_final = URPMessage("response", final_resp, verifier.name)
-    yield _sse("urp_message", {
+    msg_final = TRPMessage("response", final_resp, verifier.name)
+    yield _sse("trp_message", {
         "scenario": num,
         "sender": verifier.name,
         "role": "verifier",
@@ -254,12 +254,12 @@ async def _run_deterministic_demo():
     1. Researcher creates a claim with a deterministic ToolReceipt
     2. Challenger replays the tool and verifies (or challenges on mismatch)
     3. Verifier replays independently and finalises
-    4. SettlementMessage emitted as a first-class URPMessage
+    4. SettlementMessage emitted as a first-class TRPMessage
     """
     import hashlib
     from datetime import datetime, timezone
 
-    from urp.core import (
+    from trp.core import (
         Claim,
         ClaimType,
         EvidenceStrength,
@@ -306,7 +306,7 @@ async def _run_deterministic_demo():
         tool_name="compute_fibonacci",
         tool_version="1.0.0",
         provider_name="local_python",
-        provider_id="urp-demo",
+        provider_id="trp-demo",
         protocol_family="local_python",
         started_at=datetime.now(timezone.utc).isoformat(),
         side_effect_class=SideEffectClass.NONE,
@@ -334,8 +334,8 @@ async def _run_deterministic_demo():
         evidence=[receipt],
     )
 
-    msg_claim = URPMessage("claim", claim, researcher_name)
-    yield _sse("urp_message", {
+    msg_claim = TRPMessage("claim", claim, researcher_name)
+    yield _sse("trp_message", {
         "scenario": 1,
         "sender": researcher_name,
         "role": "researcher",
@@ -382,8 +382,8 @@ async def _run_deterministic_demo():
         decision=challenger_decision,
         stake=challenge_stake,
     )
-    msg_challenge = URPMessage("response", challenge_resp, challenger_name)
-    yield _sse("urp_message", {
+    msg_challenge = TRPMessage("response", challenge_resp, challenger_name)
+    yield _sse("trp_message", {
         "scenario": 1,
         "sender": challenger_name,
         "role": "challenger",
@@ -409,8 +409,8 @@ async def _run_deterministic_demo():
         verifier_reason = f"Independent replay failed: {verifier_result.detail}"
 
     final_resp = Response(claim_id=claim.id, decision=final_decision)
-    msg_final = URPMessage("response", final_resp, verifier_name)
-    yield _sse("urp_message", {
+    msg_final = TRPMessage("response", final_resp, verifier_name)
+    yield _sse("trp_message", {
         "scenario": 1,
         "sender": verifier_name,
         "role": "verifier",
@@ -456,7 +456,7 @@ async def _run_deterministic_demo():
         timestamp=datetime.now(timezone.utc).isoformat(),
         notes=outcome_text,
     )
-    msg_settlement = URPMessage("settlement", settlement, verifier_name)
+    msg_settlement = TRPMessage("settlement", settlement, verifier_name)
 
     balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
     yield _sse("settlement", {
@@ -464,11 +464,11 @@ async def _run_deterministic_demo():
         "outcome": outcome_text,
         "balances": balances,
     })
-    yield _sse("urp_message", {
+    yield _sse("trp_message", {
         "scenario": 1,
         "sender": verifier_name,
         "role": "verifier",
-        "reasoning": "SettlementMessage emitted as first-class URPMessage",
+        "reasoning": "SettlementMessage emitted as first-class TRPMessage",
         "message": json.loads(msg_settlement.to_json(compact=False)),
     })
 
@@ -491,7 +491,7 @@ async def _run_deterministic_demo():
         tool_name="compute_fibonacci",
         tool_version="1.0.0",
         provider_name="local_python",
-        provider_id="urp-demo",
+        provider_id="trp-demo",
         protocol_family="local_python",
         started_at=datetime.now(timezone.utc).isoformat(),
         side_effect_class=SideEffectClass.NONE,
@@ -519,8 +519,8 @@ async def _run_deterministic_demo():
         evidence=[tampered_receipt],
     )
 
-    msg_tampered = URPMessage("claim", tampered_claim, researcher_name)
-    yield _sse("urp_message", {
+    msg_tampered = TRPMessage("claim", tampered_claim, researcher_name)
+    yield _sse("trp_message", {
         "scenario": 2,
         "sender": researcher_name,
         "role": "researcher",
@@ -559,8 +559,8 @@ async def _run_deterministic_demo():
         decision=challenger_decision_2,
         stake=Stake(amount=0.3),
     )
-    msg_challenge_2 = URPMessage("response", challenge_resp_2, challenger_name)
-    yield _sse("urp_message", {
+    msg_challenge_2 = TRPMessage("response", challenge_resp_2, challenger_name)
+    yield _sse("trp_message", {
         "scenario": 2,
         "sender": challenger_name,
         "role": "challenger",
@@ -577,8 +577,8 @@ async def _run_deterministic_demo():
     verifier_reason_2 = f"Independent replay confirms tampering: {verifier_check_2.detail}"
 
     final_resp_2 = Response(claim_id=tampered_claim.id, decision=Decision.REJECT)
-    msg_final_2 = URPMessage("response", final_resp_2, verifier_name)
-    yield _sse("urp_message", {
+    msg_final_2 = TRPMessage("response", final_resp_2, verifier_name)
+    yield _sse("trp_message", {
         "scenario": 2,
         "sender": verifier_name,
         "role": "verifier",
@@ -608,7 +608,7 @@ async def _run_deterministic_demo():
         timestamp=datetime.now(timezone.utc).isoformat(),
         notes=outcome_text_2,
     )
-    msg_settlement_2 = URPMessage("settlement", settlement_2, verifier_name)
+    msg_settlement_2 = TRPMessage("settlement", settlement_2, verifier_name)
 
     balances = {n: f"{b:.2f}" for n, b in ledger.balances.items()}
     yield _sse("settlement", {
@@ -616,7 +616,7 @@ async def _run_deterministic_demo():
         "outcome": outcome_text_2,
         "balances": balances,
     })
-    yield _sse("urp_message", {
+    yield _sse("trp_message", {
         "scenario": 2,
         "sender": verifier_name,
         "role": "verifier",
@@ -635,7 +635,7 @@ async def index():
     try:
         html = pathlib.Path("static/index.html").read_text(encoding="utf-8")
     except FileNotFoundError:
-        html = "<html><body><h1>URP Simulation Server</h1><p>Running. static/index.html not found.</p></body></html>"
+        html = "<html><body><h1>TRP Simulation Server</h1><p>Running. static/index.html not found.</p></body></html>"
     return HTMLResponse(content=html)
 
 
@@ -656,7 +656,7 @@ async def debug_env():
 
 @app.get("/run-simulation")
 async def run_simulation(claim: Optional[str] = Query(default=None)):
-    """Stream a URP simulation via SSE.
+    """Stream a TRP simulation via SSE.
 
     Enforces a maximum of MAX_CONCURRENT_SIMULATIONS concurrent runs and
     rejects custom claims longer than MAX_CLAIM_LENGTH characters.
@@ -716,9 +716,9 @@ async def run_deterministic():
     )
 
 
-@app.get("/.well-known/urp-capability.json")
-async def urp_capability():
-    """Serve an AgentCapability declaration for this URP instance.
+@app.get("/.well-known/trp-capability.json")
+async def trp_capability():
+    """Serve an AgentCapability declaration for this TRP instance.
 
     This is a discovery endpoint. Protocol-aware clients can fetch it to
     learn what claim types, evidence types, and protocol versions this
@@ -727,8 +727,8 @@ async def urp_capability():
     capability = AgentCapability(
         protocol_version=PROTOCOL_VERSION,
         agent=AgentIdentity(
-            id="urp-demo-server",
-            name="URP Demo Server",
+            id="trp-demo-server",
+            name="TRP Demo Server",
             version=PROTOCOL_VERSION,
         ),
         supported_claim_types=[ClaimType.ASSERTION],
@@ -763,8 +763,8 @@ def _build_capability() -> AgentCapability:
     return AgentCapability(
         protocol_version=PROTOCOL_VERSION,
         agent=AgentIdentity(
-            id="urp-demo-server",
-            name="URP Demo Server",
+            id="trp-demo-server",
+            name="TRP Demo Server",
             version=PROTOCOL_VERSION,
         ),
         supported_claim_types=[ClaimType.ASSERTION],
@@ -795,13 +795,13 @@ def _build_capability() -> AgentCapability:
 
 @app.get("/.well-known/agent-card.json")
 async def agent_card():
-    """Serve an A2A-compatible AgentCard for this URP instance.
+    """Serve an A2A-compatible AgentCard for this TRP instance.
 
     Translates the server's AgentCapability into the A2A AgentCard format,
     enabling discovery by A2A-compatible clients.
     """
     capability = _build_capability()
-    card = urp_capability_to_a2a_card(capability)
+    card = trp_capability_to_a2a_card(capability)
     return JSONResponse(content=card)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

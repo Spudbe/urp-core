@@ -1,4 +1,4 @@
-"""Groq-backed URP simulation using real LLM agents.
+"""Groq-backed TRP simulation using real LLM agents.
 
 Requires GROQ_API_KEY to be set in the environment.
 Install the groq package: pip install groq
@@ -10,11 +10,11 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from urp.core import Decision
-from urp.ledger import Ledger
-from urp.llm import GroqAdapter
-from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
-from urp.message import URPMessage
+from trp.core import Decision
+from trp.ledger import Ledger
+from trp.llm import GroqAdapter
+from trp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
+from trp.message import TRPMessage
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -44,14 +44,14 @@ def run_scenario(
     # 1) Researcher creates a claim
     logging.info("\n--- Step 1: Researcher creates claim ---")
     claim = researcher.create_claim(query)
-    msg_claim = URPMessage("claim", claim, researcher.name)
+    msg_claim = TRPMessage("claim", claim, researcher.name)
     logging.info(msg_claim.to_json(compact=False))
     ledger.withdraw(researcher.name, claim.stake.amount)
 
     # 2) Challenger evaluates the claim
     logging.info("\n--- Step 2: Challenger evaluates claim ---")
     challenge_resp, _ = challenger.evaluate_claim(claim, sceptical=sceptical_challenger)
-    msg_challenge = URPMessage("response", challenge_resp, challenger.name)
+    msg_challenge = TRPMessage("response", challenge_resp, challenger.name)
     logging.info(msg_challenge.to_json(compact=False))
     if challenge_resp.stake:
         ledger.withdraw(challenger.name, challenge_resp.stake.amount)
@@ -59,7 +59,7 @@ def run_scenario(
     # 3) Verifier makes final decision
     logging.info("\n--- Step 3: Verifier makes final decision ---")
     final_resp, _ = verifier.evaluate_claim(claim)
-    msg_final = URPMessage("response", final_resp, verifier.name)
+    msg_final = TRPMessage("response", final_resp, verifier.name)
     logging.info(msg_final.to_json(compact=False))
 
     # Settlement

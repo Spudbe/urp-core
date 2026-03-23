@@ -1,4 +1,4 @@
-"""Ollama-backed URP simulation using local models.
+"""Ollama-backed TRP simulation using local models.
 
 Requires Ollama to be running locally. No API key needed.
 Install Ollama from https://ollama.com, then: ollama pull llama3
@@ -10,11 +10,11 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from urp.core import Decision
-from urp.ledger import Ledger
-from urp.llm import OllamaAdapter
-from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
-from urp.message import URPMessage
+from trp.core import Decision
+from trp.ledger import Ledger
+from trp.llm import OllamaAdapter
+from trp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
+from trp.message import TRPMessage
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -54,7 +54,7 @@ def main() -> None:
         logging.error("And you have a model pulled: ollama pull llama3")
         return
 
-    msg_claim = URPMessage("claim", claim, researcher.name)
+    msg_claim = TRPMessage("claim", claim, researcher.name)
     logging.info(msg_claim.to_json(compact=False))
     ledger.withdraw(researcher.name, claim.stake.amount)
 
@@ -66,7 +66,7 @@ def main() -> None:
         logging.error(f"\nOllama error: {e}")
         return
 
-    msg_challenge = URPMessage("response", challenge_resp, challenger.name)
+    msg_challenge = TRPMessage("response", challenge_resp, challenger.name)
     logging.info(msg_challenge.to_json(compact=False))
     if challenge_resp.stake:
         ledger.withdraw(challenger.name, challenge_resp.stake.amount)
@@ -79,7 +79,7 @@ def main() -> None:
         logging.error(f"\nOllama error: {e}")
         return
 
-    msg_final = URPMessage("response", final_resp, verifier.name)
+    msg_final = TRPMessage("response", final_resp, verifier.name)
     logging.info(msg_final.to_json(compact=False))
 
     # Settlement

@@ -80,14 +80,14 @@ class TestDeterministicEndpoint:
 
     def test_stream_contains_expected_events(self, client):
         """The SSE stream should contain ping, balances, scenario, steps,
-        urp_message events, settlement, and complete."""
+        trp_message events, settlement, and complete."""
         resp = client.get("/run-deterministic")
         body = resp.text
         assert "event: ping" in body
         assert "event: balances" in body
         assert "event: scenario" in body
         assert "event: step" in body
-        assert "event: urp_message" in body
+        assert "event: trp_message" in body
         assert "event: settlement" in body
         assert "event: structured_claim" in body
         assert "event: claim_match" in body
@@ -101,7 +101,7 @@ class TestDeterministicEndpoint:
         assert "Fibonacci" in body
 
     def test_stream_contains_settlement_message(self, client):
-        """A SettlementMessage should be emitted as a URPMessage."""
+        """A SettlementMessage should be emitted as a TRPMessage."""
         resp = client.get("/run-deterministic")
         body = resp.text
         assert "settlement_id" in body
@@ -157,48 +157,48 @@ class TestDeterministicEndpoint:
 
 
 class TestCapabilityEndpoint:
-    """The /.well-known/urp-capability.json endpoint serves an AgentCapability."""
+    """The /.well-known/trp-capability.json endpoint serves an AgentCapability."""
 
     def test_returns_200_json(self, client):
-        resp = client.get("/.well-known/urp-capability.json")
+        resp = client.get("/.well-known/trp-capability.json")
         assert resp.status_code == 200
         assert "application/json" in resp.headers["content-type"]
 
     def test_contains_protocol_version(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         assert data["protocol_version"] == "0.3.0"
 
     def test_contains_agent_identity(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
-        assert data["agent"]["id"] == "urp-demo-server"
-        assert data["agent"]["name"] == "URP Demo Server"
+        data = client.get("/.well-known/trp-capability.json").json()
+        assert data["agent"]["id"] == "trp-demo-server"
+        assert data["agent"]["name"] == "TRP Demo Server"
 
     def test_contains_supported_claim_kinds(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         kinds = data["supported_claim_kinds"]
         assert "tool_output" in kinds
         assert "factual_assertion" in kinds
 
     def test_contains_accepted_evidence_types(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         types = data["accepted_evidence_types"]
         assert "tool_receipt" in types
 
     def test_contains_stake_policy(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         policy = data["stake_policy"]
         assert policy["required"] is True
         assert policy["minimum_amount"] == 0.1
         assert policy["currency"] == "URC"
 
     def test_contains_compatible_versions(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         versions = data["compatible_protocol_versions"]
         assert "0.2.0" in versions
         assert "0.3.0" in versions
 
     def test_contains_metadata_with_tools(self, client):
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         meta = data["metadata"]
         assert meta["demo"] is True
         assert "compute_fibonacci" in meta["deterministic_tools"]
@@ -208,13 +208,13 @@ class TestCapabilityEndpoint:
         """The JSON output must be parseable back into an AgentCapability."""
         from fastapi.testclient import TestClient
         from server import app
-        from urp.core import AgentCapability
+        from trp.core import AgentCapability
 
         client = TestClient(app)
-        data = client.get("/.well-known/urp-capability.json").json()
+        data = client.get("/.well-known/trp-capability.json").json()
         cap = AgentCapability.from_dict(data)
         assert cap.protocol_version == "0.3.0"
-        assert cap.agent.id == "urp-demo-server"
+        assert cap.agent.id == "trp-demo-server"
 
 
 class TestAgentCardEndpoint:
@@ -232,14 +232,14 @@ class TestAgentCardEndpoint:
         assert "skills" in data
         assert "supportedInterfaces" in data
 
-    def test_agent_card_has_urp_extension(self, client):
+    def test_agent_card_has_trp_extension(self, client):
         data = client.get("/.well-known/agent-card.json").json()
         extensions = data.get("capabilities", {}).get("extensions", [])
-        urp_ext = [e for e in extensions if e.get("uri") == "urn:urp:agent-capability"]
-        assert len(urp_ext) == 1
+        trp_ext = [e for e in extensions if e.get("uri") == "urn:trp:agent-capability"]
+        assert len(trp_ext) == 1
 
     def test_agent_card_round_trips_to_capability(self, client):
-        from urp.a2a_adapter import a2a_card_to_urp_capability
+        from trp.a2a_adapter import a2a_card_to_trp_capability
         data = client.get("/.well-known/agent-card.json").json()
-        cap = a2a_card_to_urp_capability(data)
+        cap = a2a_card_to_trp_capability(data)
         assert cap.protocol_version == "0.3.0"

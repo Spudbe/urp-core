@@ -1,38 +1,38 @@
-"""A2A adapter for URP AgentCapability ↔ A2A AgentCard translation.
+"""A2A adapter for TRP AgentCapability ↔ A2A AgentCard translation.
 
-Provides schema-to-schema translation between URP's ``AgentCapability``
+Provides schema-to-schema translation between TRP's ``AgentCapability``
 discovery primitive and A2A's ``AgentCard`` format. No network fetches,
 no verification side effects — pure data mapping.
 
-The adapter embeds the full URP AgentCapability as an A2A extension
-(``urn:urp:agent-capability``) to guarantee lossless round-trips.
-A2A skills are generated from URP ClaimKinds for human discoverability.
+The adapter embeds the full TRP AgentCapability as an A2A extension
+(``urn:trp:agent-capability``) to guarantee lossless round-trips.
+A2A skills are generated from TRP ClaimKinds for human discoverability.
 
 Key design decisions:
-- URP-specific fields (stake policy, evidence constraints) live in
+- TRP-specific fields (stake policy, evidence constraints) live in
   A2A extension params, not shoehorned into A2A native fields.
-- Round-trip is lossless when the URP extension is present.
-- Without the URP extension, A2A→URP conversion is best-effort from
+- Round-trip is lossless when the TRP extension is present.
+- Without the TRP extension, A2A→TRP conversion is best-effort from
   skill tags.
-- Signing is NOT bridged — A2A uses RFC 8785 JCS, URP uses sorted-key
+- Signing is NOT bridged — A2A uses RFC 8785 JCS, TRP uses sorted-key
   compact JSON. Signatures are kept separate.
 
 Typical usage::
 
-    from urp.a2a_adapter import urp_capability_to_a2a_card, a2a_card_to_urp_capability
+    from trp.a2a_adapter import trp_capability_to_a2a_card, a2a_card_to_trp_capability
 
-    card = urp_capability_to_a2a_card(capability)
+    card = trp_capability_to_a2a_card(capability)
     # Serve card at /.well-known/agent-card.json
 
-    capability = a2a_card_to_urp_capability(card)
-    # Use for URP claim routing
+    capability = a2a_card_to_trp_capability(card)
+    # Use for TRP claim routing
 """
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
-from urp.core import (
+from trp.core import (
     AgentCapability,
     AgentIdentity,
     ClaimKind,
@@ -42,55 +42,55 @@ from urp.core import (
     StakePolicy,
 )
 
-# The A2A extension URI for embedded URP capability.
-URP_EXTENSION_URI = "urn:urp:agent-capability"
+# The A2A extension URI for embedded TRP capability.
+TRP_EXTENSION_URI = "urn:trp:agent-capability"
 
 # Human-readable descriptions for ClaimKind values.
 _CLAIM_KIND_DESCRIPTIONS: dict[str, str] = {
     "tool_output": (
-        "Evaluates URP tool_output claims backed by ToolReceipts "
+        "Evaluates TRP tool_output claims backed by ToolReceipts "
         "that can be replayed or hash-checked."
     ),
     "factual_assertion": (
-        "Evaluates URP factual_assertion claims using attached "
+        "Evaluates TRP factual_assertion claims using attached "
         "evidence (proof references and/or receipts)."
     ),
     "code_verification": (
-        "Evaluates URP code_verification claims for correctness "
+        "Evaluates TRP code_verification claims for correctness "
         "of code outputs or test results."
     ),
     "data_integrity": (
-        "Evaluates URP data_integrity claims (format, completeness, "
+        "Evaluates TRP data_integrity claims (format, completeness, "
         "consistency) using provided evidence."
     ),
     "provenance_check": (
-        "Evaluates URP provenance_check claims tracing data or "
+        "Evaluates TRP provenance_check claims tracing data or "
         "artifact origins."
     ),
     "policy_compliance": (
-        "Evaluates URP policy_compliance claims against defined "
+        "Evaluates TRP policy_compliance claims against defined "
         "rules or regulations."
     ),
     "safety_check": (
-        "Evaluates URP safety_check claims for harmful content "
+        "Evaluates TRP safety_check claims for harmful content "
         "or unsafe outputs."
     ),
 }
 
 
-def urp_capability_to_a2a_card(
+def trp_capability_to_a2a_card(
     capability: AgentCapability,
     *,
     base_url: Optional[str] = None,
     documentation_url: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Translate a URP AgentCapability into an A2A AgentCard dict.
+    """Translate a TRP AgentCapability into an A2A AgentCard dict.
 
-    The full URP capability is embedded as an A2A extension for lossless
-    round-tripping. A2A skills are generated from URP ClaimKinds.
+    The full TRP capability is embedded as an A2A extension for lossless
+    round-tripping. A2A skills are generated from TRP ClaimKinds.
 
     Args:
-        capability: The URP AgentCapability to translate.
+        capability: The TRP AgentCapability to translate.
         base_url: The agent's base URL for the A2A interface entry.
             Falls back to ``capability.metadata["live_url"]`` if present.
         documentation_url: Documentation URL for the card.
@@ -107,12 +107,12 @@ def urp_capability_to_a2a_card(
     if documentation_url is None:
         documentation_url = meta.get("source")
 
-    # Build description from URP fields
+    # Build description from TRP fields
     kinds_str = ", ".join(k.value for k in capability.supported_claim_kinds)
     evidence_str = ", ".join(e.value for e in capability.accepted_evidence_types)
     stake = capability.stake_policy
     description = (
-        f"URP verifier agent. Supports {kinds_str}. "
+        f"TRP verifier agent. Supports {kinds_str}. "
         f"Accepts {evidence_str}. "
     )
     if stake.required:
@@ -127,25 +127,25 @@ def urp_capability_to_a2a_card(
     skills = []
     for kind in capability.supported_claim_kinds:
         # Build tags
-        tags = ["urp", f"urp_claim_kind:{kind.value}"]
+        tags = ["trp", f"trp_claim_kind:{kind.value}"]
         for ct in capability.supported_claim_types:
-            tags.append(f"urp_claim_type:{ct.value}")
+            tags.append(f"trp_claim_type:{ct.value}")
         for et in capability.accepted_evidence_types:
-            tags.append(f"urp_evidence:{et.value}")
+            tags.append(f"trp_evidence:{et.value}")
         tags.append(
-            f"urp_min_evidence_strength:{capability.minimum_evidence_strength.value}"
+            f"trp_min_evidence_strength:{capability.minimum_evidence_strength.value}"
         )
         if stake.required:
-            tags.append("urp_stake_required:true")
+            tags.append("trp_stake_required:true")
 
         skill_desc = _CLAIM_KIND_DESCRIPTIONS.get(
             kind.value,
-            f"Evaluates URP {kind.value} claims.",
+            f"Evaluates TRP {kind.value} claims.",
         )
 
         skills.append({
-            "id": f"urp.verify.{kind.value}",
-            "name": f"URP {kind.value.replace('_', ' ').title()} Verification",
+            "id": f"trp.verify.{kind.value}",
+            "name": f"TRP {kind.value.replace('_', ' ').title()} Verification",
             "description": skill_desc,
             "tags": tags,
         })
@@ -158,22 +158,22 @@ def urp_capability_to_a2a_card(
         "supportedInterfaces": [
             {
                 "url": base_url,
-                "protocolBinding": "URP",
+                "protocolBinding": "TRP",
                 "protocolVersion": capability.protocol_version,
             }
         ],
         "capabilities": {
             "extensions": [
                 {
-                    "uri": URP_EXTENSION_URI,
+                    "uri": TRP_EXTENSION_URI,
                     "description": (
-                        "Embeds URP AgentCapability for URP-aware A2A routing."
+                        "Embeds TRP AgentCapability for TRP-aware A2A routing."
                     ),
                     "required": False,
                     "params": {
-                        "urpCapabilityUrl": "/.well-known/urp-capability.json",
-                        "urpCapabilityInline": capability.to_dict(),
-                        "urpAgentId": capability.agent.id,
+                        "trpCapabilityUrl": "/.well-known/trp-capability.json",
+                        "trpCapabilityInline": capability.to_dict(),
+                        "trpAgentId": capability.agent.id,
                     },
                 }
             ]
@@ -189,10 +189,10 @@ def urp_capability_to_a2a_card(
     return card
 
 
-def a2a_card_to_urp_capability(card: dict[str, Any]) -> Optional[AgentCapability]:
-    """Extract a URP AgentCapability from an A2A AgentCard dict.
+def a2a_card_to_trp_capability(card: dict[str, Any]) -> Optional[AgentCapability]:
+    """Extract a TRP AgentCapability from an A2A AgentCard dict.
 
-    Preferred path: find the URP extension and parse the inline capability.
+    Preferred path: find the TRP extension and parse the inline capability.
     Fallback: attempt best-effort reconstruction from A2A skills and tags.
 
     Args:
@@ -200,16 +200,16 @@ def a2a_card_to_urp_capability(card: dict[str, Any]) -> Optional[AgentCapability
 
     Returns:
         An AgentCapability if one could be extracted, or None if the card
-        has no URP extension and insufficient data for reconstruction.
+        has no TRP extension and insufficient data for reconstruction.
     """
-    # Try the lossless path first: URP extension with inline capability
+    # Try the lossless path first: TRP extension with inline capability
     extensions = (
         card.get("capabilities", {}).get("extensions", [])
     )
     for ext in extensions:
-        if ext.get("uri") == URP_EXTENSION_URI:
+        if ext.get("uri") == TRP_EXTENSION_URI:
             params = ext.get("params", {})
-            inline = params.get("urpCapabilityInline")
+            inline = params.get("trpCapabilityInline")
             if inline is not None:
                 return AgentCapability.from_dict(inline)
 
@@ -237,13 +237,13 @@ def _reconstruct_from_a2a(card: dict[str, Any]) -> Optional[AgentCapability]:
     for skill in skills:
         tags = skill.get("tags", [])
         for tag in tags:
-            if tag.startswith("urp_claim_kind:"):
+            if tag.startswith("trp_claim_kind:"):
                 value = tag.split(":", 1)[1]
                 try:
                     claim_kinds.append(ClaimKind(value))
                 except ValueError:
                     pass
-            elif tag.startswith("urp_claim_type:"):
+            elif tag.startswith("trp_claim_type:"):
                 value = tag.split(":", 1)[1]
                 try:
                     ct = ClaimType(value)
@@ -251,7 +251,7 @@ def _reconstruct_from_a2a(card: dict[str, Any]) -> Optional[AgentCapability]:
                         claim_types.append(ct)
                 except ValueError:
                     pass
-            elif tag.startswith("urp_evidence:"):
+            elif tag.startswith("trp_evidence:"):
                 value = tag.split(":", 1)[1]
                 try:
                     et = EvidenceType(value)
@@ -282,10 +282,10 @@ def _reconstruct_from_a2a(card: dict[str, Any]) -> Optional[AgentCapability]:
         if url:
             agent_id = url.split("//")[-1].split("/")[0]
 
-    # Extract protocol version from URP interface if present
+    # Extract protocol version from TRP interface if present
     protocol_version = "0.3.0"
     for iface in interfaces:
-        if iface.get("protocolBinding") == "URP":
+        if iface.get("protocolBinding") == "TRP":
             protocol_version = iface.get("protocolVersion", "0.3.0")
             break
 
@@ -302,47 +302,47 @@ def _reconstruct_from_a2a(card: dict[str, Any]) -> Optional[AgentCapability]:
 
 
 def merge_discovery(
-    urp_capability: AgentCapability,
+    trp_capability: AgentCapability,
     a2a_card: dict[str, Any],
 ) -> dict[str, Any]:
-    """Merge a URP AgentCapability into an existing A2A AgentCard.
+    """Merge a TRP AgentCapability into an existing A2A AgentCard.
 
-    Adds or replaces the URP extension in the card's capabilities,
-    and updates skills to reflect URP claim kinds.
+    Adds or replaces the TRP extension in the card's capabilities,
+    and updates skills to reflect TRP claim kinds.
 
     Args:
-        urp_capability: The URP capability to embed.
+        trp_capability: The TRP capability to embed.
         a2a_card: An existing A2A AgentCard dict.
 
     Returns:
-        A new A2A AgentCard dict with the URP extension merged.
+        A new A2A AgentCard dict with the TRP extension merged.
     """
     # Deep copy to avoid mutating the input
     import copy
     merged = copy.deepcopy(a2a_card)
 
-    # Build the URP extension
-    urp_ext = {
-        "uri": URP_EXTENSION_URI,
-        "description": "Embeds URP AgentCapability for URP-aware A2A routing.",
+    # Build the TRP extension
+    trp_ext = {
+        "uri": TRP_EXTENSION_URI,
+        "description": "Embeds TRP AgentCapability for TRP-aware A2A routing.",
         "required": False,
         "params": {
-            "urpCapabilityUrl": "/.well-known/urp-capability.json",
-            "urpCapabilityInline": urp_capability.to_dict(),
-            "urpAgentId": urp_capability.agent.id,
+            "trpCapabilityUrl": "/.well-known/trp-capability.json",
+            "trpCapabilityInline": trp_capability.to_dict(),
+            "trpAgentId": trp_capability.agent.id,
         },
     }
 
-    # Replace or add the URP extension
+    # Replace or add the TRP extension
     caps = merged.setdefault("capabilities", {})
     extensions = caps.setdefault("extensions", [])
     replaced = False
     for i, ext in enumerate(extensions):
-        if ext.get("uri") == URP_EXTENSION_URI:
-            extensions[i] = urp_ext
+        if ext.get("uri") == TRP_EXTENSION_URI:
+            extensions[i] = trp_ext
             replaced = True
             break
     if not replaced:
-        extensions.append(urp_ext)
+        extensions.append(trp_ext)
 
     return merged

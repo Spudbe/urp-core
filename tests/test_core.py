@@ -1,5 +1,5 @@
 import pytest
-from urp.core import (
+from trp.core import (
     ProofReference, Stake, Claim, ClaimType, Decision, ToolReceipt,
     EvidenceStrength, NondeterminismClass, SideEffectClass, ReplayClass,
     SettlementMessage, SettlementOutcome,

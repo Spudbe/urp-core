@@ -2,33 +2,33 @@
 
 ## Project Overview
 
-URP (Universal Reasoning Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/urp-core, current version 0.3.0 (v0.5 features complete).
+TRP (Tool Receipt Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/trp-core, current version 0.3.0 (v0.5 features complete).
 
 ## Architecture
 
 The codebase has ten layers:
 
-**Message layer** — `urp/core.py` and `urp/message.py`. All protocol data types as dataclasses with `to_dict()`/`from_dict()`. Core types: `Claim` (with optional `structured_claim` field), `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`.
+**Message layer** — `trp/core.py` and `trp/message.py`. All protocol data types as dataclasses with `to_dict()`/`from_dict()`. Core types: `Claim` (with optional `structured_claim` field), `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`.
 
-**Structured claims layer** — `urp/structured_claim.py` and `urp/claim_verifier.py`. Machine-parseable propositions (ToolOutputEquals, ValueComparison, Compound) with three-valued logic claim-to-evidence matching engine.
+**Structured claims layer** — `trp/structured_claim.py` and `trp/claim_verifier.py`. Machine-parseable propositions (ToolOutputEquals, ValueComparison, Compound) with three-valued logic claim-to-evidence matching engine.
 
-**Verification layer** — `urp/verify.py` and `urp/deterministic_tools.py`. `ToolReceiptVerifier` registry-based engine with 7 verification statuses, 6 classification rules, `verify_claim()` batch verification. 4 built-in pure functions.
+**Verification layer** — `trp/verify.py` and `trp/deterministic_tools.py`. `ToolReceiptVerifier` registry-based engine with 7 verification statuses, 6 classification rules, `verify_claim()` batch verification. 4 built-in pure functions.
 
-**Signing layer** — `urp/signing.py`. Ed25519 JWS signing via jwcrypto. Detached signatures, receipt signing with evidence strength auto-escalation, message envelope signing.
+**Signing layer** — `trp/signing.py`. Ed25519 JWS signing via jwcrypto. Detached signatures, receipt signing with evidence strength auto-escalation, message envelope signing.
 
-**MCP adapter layer** — `urp/mcp_adapter.py`. `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`. End-to-end: wrap → extract → verify.
+**MCP adapter layer** — `trp/mcp_adapter.py`. `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`. End-to-end: wrap → extract → verify.
 
-**A2A adapter layer** — `urp/a2a_adapter.py`. `urp_capability_to_a2a_card()` and `a2a_card_to_urp_capability()` for lossless round-trip translation.
+**A2A adapter layer** — `trp/a2a_adapter.py`. `trp_capability_to_a2a_card()` and `a2a_card_to_trp_capability()` for lossless round-trip translation.
 
-**Agent layer** — `urp/agent.py`, `urp/knowledge_base.py`, and `urp/llm_agents.py`. Abstract `Agent` base, ResearcherLLM, ChallengerLLM, VerifierLLM shared classes.
+**Agent layer** — `trp/agent.py`, `trp/knowledge_base.py`, and `trp/llm_agents.py`. Abstract `Agent` base, ResearcherLLM, ChallengerLLM, VerifierLLM shared classes.
 
-**Ledger layer** — `urp/ledger.py`. In-memory balance tracker.
+**Ledger layer** — `trp/ledger.py`. In-memory balance tracker.
 
-**Transport layer** — `urp/transport.py`. WebSocket server/client.
+**Transport layer** — `trp/transport.py`. WebSocket server/client.
 
-**LLM adapter layer** — `urp/llm.py`. `LLMAdapter` ABC with `GroqAdapter`, `OllamaAdapter`, `OpenAIAdapter`.
+**LLM adapter layer** — `trp/llm.py`. `LLMAdapter` ABC with `GroqAdapter`, `OllamaAdapter`, `OpenAIAdapter`.
 
-**Web server** — `server.py`. FastAPI with SSE. Endpoints: `/run-simulation`, `/run-deterministic`, `/.well-known/urp-capability.json`, `/.well-known/agent-card.json`, `/debug-env`. Rate limiting, max claim length. Deployed at https://urp-core-production.up.railway.app.
+**Web server** — `server.py`. FastAPI with SSE. Endpoints: `/run-simulation`, `/run-deterministic`, `/.well-known/trp-capability.json`, `/.well-known/agent-card.json`, `/debug-env`. Rate limiting, max claim length. Deployed at https://trp-core-production.up.railway.app.
 
 ## Current State
 
@@ -48,7 +48,7 @@ The codebase has ten layers:
 - Docstrings on all public classes and methods
 - `pytest` for tests (`tests/` directory)
 - No placeholder or stub logic — if a feature isn't implemented, it isn't in the code
-- Spec and code must stay in sync — changes to protocol types require updating both SPEC.md/SPEC-v2.md and urp/core.py
+- Spec and code must stay in sync — changes to protocol types require updating both SPEC.md/SPEC-v2.md and trp/core.py
 - Each serialisable type has `to_dict()` and `from_dict()` class methods
 - Pure functions preferred — signing and verification return new objects, not mutations
 
@@ -56,7 +56,7 @@ The codebase has ten layers:
 
 These files define the core protocol identity. Changes require updating both spec and code together:
 
-- `urp/core.py` — protocol data types
+- `trp/core.py` — protocol data types
 - `SPEC.md` — v1 protocol specification
 - `SPEC-v2.md` — v2 specification with JSON schemas
 

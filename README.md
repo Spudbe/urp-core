@@ -1,16 +1,16 @@
-# Universal Reasoning Protocol (URP)
+# TRP — Tool Receipt Protocol
 
-A protocol for structured claim exchange, verification, and settlement between autonomous agents.
+**Status: v0.5 — Apache-2.0 licensed**
 
-> **Status: Protocol v0.3.0 — not production code.**
+TRP is an open protocol for verifiable tool call accountability between AI agents. Every tool call produces a signed, hash-verified receipt. Claims are structured propositions mechanically matched to receipt evidence. Settlement redistributes stakes when evidence is challenged.
 
-## What URP Is
+## What TRP Is
 
-URP is a message protocol that lets agents make claims, attach proofs, and stake value on correctness. Other agents evaluate claims, challenge them, or accept them, and a settlement step redistributes stakes based on the outcome. The protocol defines the message shapes and interaction flow; it does not prescribe transport, identity, or proof format.
+TRP is a message protocol that lets agents make claims, attach proofs, and stake value on correctness. Other agents evaluate claims, challenge them, or accept them, and a settlement step redistributes stakes based on the outcome. The protocol defines the message shapes and interaction flow; it does not prescribe transport, identity, or proof format.
 
 ## Why It Exists
 
-When one agent asks another for information, there is no built-in mechanism for the responding agent to demonstrate correctness or for the requesting agent to verify it. URP addresses this gap by requiring claims to carry proof references and stakes, making accuracy an economic commitment rather than a trust assumption.
+When one agent asks another for information, there is no built-in mechanism for the responding agent to demonstrate correctness or for the requesting agent to verify it. TRP addresses this gap by requiring claims to carry proof references and stakes, making accuracy an economic commitment rather than a trust assumption.
 
 ## Core Concepts
 
@@ -23,15 +23,15 @@ When one agent asks another for information, there is no built-in mechanism for 
 
 ## How It Fits
 
-Where MCP handles tool invocation and A2A handles agent discovery, URP handles claim accountability. An agent that retrieves data via MCP or delegates work via A2A can use URP to attach a verifiable proof and an economic stake to the result, giving downstream consumers a reason to trust or challenge it.
+Where MCP handles tool invocation and A2A handles agent discovery, TRP handles claim accountability. An agent that retrieves data via MCP or delegates work via A2A can use TRP to attach a verifiable proof and an economic stake to the result, giving downstream consumers a reason to trust or challenge it.
 
 ## Quick Start
 
 Requires Python 3.10+. Install dependencies with `pip install -r requirements.txt`.
 
 ```bash
-git clone https://github.com/Spudbe/urp-core.git
-cd urp-core
+git clone https://github.com/Spudbe/trp-core.git
+cd trp-core
 python simulations/simple_simulation.py
 ```
 
@@ -72,7 +72,7 @@ Verifier: 1.00 URC
 
 ## LLM-Backed Demo
 
-An optional simulation replaces the hard-coded agents with LLM-backed agents that use the Groq API to generate real reasoning. Each agent (Researcher, Challenger, Verifier) calls Llama 3 via Groq to produce claims, evaluate evidence, and make decisions, exchanging full URPMessage envelopes throughout.
+An optional simulation replaces the hard-coded agents with LLM-backed agents that use the Groq API to generate real reasoning. Each agent (Researcher, Challenger, Verifier) calls Llama 3 via Groq to produce claims, evaluate evidence, and make decisions, exchanging full TRPMessage envelopes throughout.
 
 ```bash
 pip install groq
@@ -94,7 +94,7 @@ This demonstrates the evidence-first principle: claims that can be verified by r
 
 ### Ollama (Local Models)
 
-URP also works with local models via [Ollama](https://ollama.com). No API key needed.
+TRP also works with local models via [Ollama](https://ollama.com). No API key needed.
 
 ```bash
 # Install Ollama from https://ollama.com, then:
@@ -106,7 +106,7 @@ Set `OLLAMA_HOST` if Ollama is not running on the default `http://localhost:1143
 
 ### OpenAI
 
-URP works with OpenAI models. The adapter uses `urllib` (stdlib) — the `openai` package is not required.
+TRP works with OpenAI models. The adapter uses `urllib` (stdlib) — the `openai` package is not required.
 
 ```bash
 export OPENAI_API_KEY=your_key_here
@@ -115,13 +115,13 @@ export OPENAI_API_KEY=your_key_here
 To use OpenAI instead of Groq, replace `GroqAdapter()` with `OpenAIAdapter()` in any simulation script:
 
 ```python
-from urp.llm import OpenAIAdapter
+from trp.llm import OpenAIAdapter
 llm = OpenAIAdapter()  # defaults to gpt-4o-mini
 ```
 
 ## Web Interface
 
-**Live demo:** [https://urp-core-production.up.railway.app](https://urp-core-production.up.railway.app)
+**Live demo:** [https://trp-core-production.up.railway.app](https://trp-core-production.up.railway.app)
 
 A browser-based interface streams simulation progress in real time using Server-Sent Events. Three scenarios run back to back — easy claim, contested claim, and false claim — showing the full claim lifecycle with live balance updates.
 
@@ -135,13 +135,13 @@ Open [http://localhost:8000](http://localhost:8000) in your browser and click **
 
 ## Deploy your own
 
-**Live demo:** [https://urp-core-production.up.railway.app](https://urp-core-production.up.railway.app)
+**Live demo:** [https://trp-core-production.up.railway.app](https://trp-core-production.up.railway.app)
 
 ### Manual deploy on Railway
 
 1. Fork this repository.
 2. In Railway, create a new project and choose Deploy from GitHub repo.
-3. Select your fork of urp-core.
+3. Select your fork of trp-core.
 4. Add the required environment variable: `GROQ_API_KEY`
 5. Deploy the service.
 6. After deploy succeeds, open Settings → Networking and generate a public domain.
@@ -158,21 +158,21 @@ uvicorn server:app --host 0.0.0.0 --port 8000
 ## Repository Structure
 
 ```
-urp-core/
+trp-core/
 ├── SPEC.md                              # Protocol specification (v1 draft)
 ├── SPEC-v2.md                           # v2 specification with JSON schemas
 ├── README.md                            # This file
 ├── server.py                            # FastAPI server with SSE simulation endpoint
 ├── static/
 │   └── index.html                       # Browser interface for live simulation
-├── urp/
+├── trp/
 │   ├── __init__.py                      # Package init, exports __version__
 │   ├── core.py                          # Data classes: Claim, ProofReference, Stake, Response
 │   ├── agent.py                         # Agent ABC and reference implementations
 │   ├── knowledge_base.py               # KnowledgeBase ABC, InMemoryKnowledgeBase, get_fact()
 │   ├── ledger.py                        # In-memory balance ledger
 │   ├── llm.py                           # LLM adapter interface and Groq implementation
-│   ├── message.py                       # URPMessage envelope with protocol versioning
+│   ├── message.py                       # TRPMessage envelope with protocol versioning
 │   └── transport.py                     # WebSocket server/client for networked simulations
 └── simulations/
     ├── simple_simulation.py             # Single-process claim/challenge/verify loop
@@ -191,9 +191,9 @@ v0.3 is the current release. It adds ToolReceipt (the first mechanically verifia
 v0.4 will add:
 - `ToolReceiptVerifier` engine with deterministic tool registry
 - Deterministic verification scenario in the live web demo
-- SettlementMessage streaming as first-class URPMessage events
+- SettlementMessage streaming as first-class TRPMessage events
 - MCP transport adapter for tool-calling workflows
 
 ## License
 
-BUSL-1.1. Change date: 2030-03-21. On the change date the license converts to Apache-2.0.
+Apache-2.0. See [LICENSE](LICENSE).

@@ -1,18 +1,18 @@
-"""Tests for urp/structured_claim.py and urp/claim_verifier.py."""
+"""Tests for trp/structured_claim.py and trp/claim_verifier.py."""
 
 import json
 
 import pytest
 
-from urp.core import (
+from trp.core import (
     EvidenceStrength,
     NondeterminismClass,
     ReplayClass,
     SideEffectClass,
     ToolReceipt,
 )
-from urp.deterministic_tools import compute_fibonacci, compute_factorial, compute_sha256
-from urp.structured_claim import (
+from trp.deterministic_tools import compute_fibonacci, compute_factorial, compute_sha256
+from trp.structured_claim import (
     ComparisonOp,
     Compound,
     LogicalOp,
@@ -22,7 +22,7 @@ from urp.structured_claim import (
     ValueComparison,
     proposition_from_dict,
 )
-from urp.claim_verifier import (
+from trp.claim_verifier import (
     ClaimMatchResult,
     PropResult,
     PropStatus,

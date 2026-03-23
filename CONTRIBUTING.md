@@ -1,6 +1,6 @@
-# Contributing to URP
+# Contributing to TRP
 
-URP is a public protocol draft. Contributions are welcome in the following forms.
+TRP is a public protocol draft. Contributions are welcome in the following forms.
 
 ## Spec Feedback
 
@@ -33,4 +33,4 @@ python simulations/simple_simulation.py
 
 ## License
 
-By contributing you agree that your contributions will be licensed under the same BUSL-1.1 terms as the rest of the project. See LICENSE for details.
+By contributing you agree that your contributions will be licensed under the same Apache-2.0 terms as the rest of the project. See LICENSE for details.

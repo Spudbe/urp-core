@@ -1,4 +1,4 @@
-# URP deployment configuration
+# TRP deployment configuration
 [deploy]
 healthcheckPath = "/"
 healthcheckTimeout = 30

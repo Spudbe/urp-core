@@ -4,10 +4,10 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from urp.agent import ResearcherAgent, ChallengerAgent, VerifierAgent
-from urp.ledger import Ledger
-from urp.message import URPMessage
-from urp.transport import AgentServer, AgentClient
+from trp.agent import ResearcherAgent, ChallengerAgent, VerifierAgent
+from trp.ledger import Ledger
+from trp.message import TRPMessage
+from trp.transport import AgentServer, AgentClient
 
 async def networked_simulation():
     # Instantiate agents
@@ -33,7 +33,7 @@ async def networked_simulation():
 
     # Researcher creates a claim and sends it to Challenger for evaluation
     claim = researcher.create_claim("What is the boiling point of water at sea level?")
-    msg = URPMessage("claim", claim, researcher.name)
+    msg = TRPMessage("claim", claim, researcher.name)
     async with AgentClient(researcher.name, "ws://localhost:8002") as client:
         challenger_resp = await client.send(msg)
 

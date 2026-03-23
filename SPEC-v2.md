@@ -1,5 +1,5 @@
 ````markdown
-# Universal Reasoning Protocol – Detailed Specification (v2)
+# Tool Receipt Protocol – Detailed Specification (v2)
 
 ## 1. Introduction
 - Purpose, goals and non‑goals  
@@ -11,7 +11,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP Claim",
+  "title": "TRP Claim",
   "description": "An atomic assertion of fact or intent, with attached proof reference and stake.",
   "type": "object",
   "required": ["id", "statement", "type", "proof_ref", "stake"],
@@ -39,7 +39,7 @@
       "type": "object",
       "required": ["amount", "currency", "refundable"],
       "properties": {
-        "amount": { "type": "number", "minimum": 0, "description": "Quantity of URP credits locked with the claim." },
+        "amount": { "type": "number", "minimum": 0, "description": "Quantity of TRP credits locked with the claim." },
         "currency": { "type": "string", "pattern": "^[A-Z]{3,5}$", "description": "Unit of account (e.g. 'URC')." },
         "refundable": { "type": "boolean", "description": "Whether the stake is returned on acceptance." }
       },
@@ -67,7 +67,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "#ProofReference",
-  "title": "URP ProofReference",
+  "title": "TRP ProofReference",
   "description": "Pointer to an external proof artifact.",
   "type": "object",
   "required": ["hash", "location", "summary"],
@@ -86,12 +86,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "#Stake",
-  "title": "URP Stake",
+  "title": "TRP Stake",
   "description": "Stake attached to signal confidence and fund verification.",
   "type": "object",
   "required": ["amount", "currency", "refundable"],
   "properties": {
-    "amount": { "type": "number", "minimum": 0, "description": "Quantity of URP credits locked with the claim." },
+    "amount": { "type": "number", "minimum": 0, "description": "Quantity of TRP credits locked with the claim." },
     "currency": { "type": "string", "pattern": "^[A-Z]{3,5}$", "description": "Unit of account (e.g. 'URC')." },
     "refundable": { "type": "boolean", "description": "Whether the stake is returned on acceptance." }
   },
@@ -103,7 +103,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP Response",
+  "title": "TRP Response",
   "description": "Decision on a claim, optionally including a counter‑stake or proof.",
   "type": "object",
   "required": ["claim_id", "decision"],
@@ -150,7 +150,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP ToolReceipt",
+  "title": "TRP ToolReceipt",
   "description": "A verifiable record of a tool call with strength and replay classification.",
   "type": "object",
   "required": ["receipt_id", "tool_name", "provider_name", "provider_id", "started_at", "input_inline", "input_sha256", "output_inline", "output_sha256"],
@@ -181,7 +181,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP SettlementMessage",
+  "title": "TRP SettlementMessage",
   "description": "Records the outcome of a claim settlement and resulting balance changes.",
   "type": "object",
   "required": ["settlement_id", "claim_id", "outcome", "researcher_delta", "challenger_delta", "timestamp"],
@@ -202,12 +202,12 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP AgentCapability",
+  "title": "TRP AgentCapability",
   "description": "Preflight declaration of what an agent can verify. Used for routing, not settlement.",
   "type": "object",
   "required": ["protocol_version", "agent", "supported_claim_types", "supported_claim_kinds", "accepted_evidence_types", "minimum_evidence_strength", "stake_policy", "compatible_protocol_versions"],
   "properties": {
-    "protocol_version": { "type": "string", "description": "URP protocol version this declaration targets." },
+    "protocol_version": { "type": "string", "description": "TRP protocol version this declaration targets." },
     "agent": {
       "type": "object",
       "required": ["id", "name", "version"],
@@ -257,7 +257,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP StructuredClaim",
+  "title": "TRP StructuredClaim",
   "description": "Machine-parseable claim proposition that can be matched against ToolReceipt evidence.",
   "type": "object",
   "required": ["sc_version", "kind", "proposition"],
@@ -318,8 +318,8 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "MCP CallToolResult with URP ToolReceipt",
-  "description": "MCP CallToolResult shape with a URP ToolReceipt embedded in _meta.",
+  "title": "MCP CallToolResult with TRP ToolReceipt",
+  "description": "MCP CallToolResult shape with a TRP ToolReceipt embedded in _meta.",
   "type": "object",
   "required": ["content", "isError"],
   "properties": {
@@ -328,7 +328,7 @@
     "_meta": {
       "type": "object",
       "properties": {
-        "urp:tool_receipt": { "$ref": "#/$defs/ToolReceipt" }
+        "trp:tool_receipt": { "$ref": "#/$defs/ToolReceipt" }
       }
     },
     "isError": { "type": "boolean" }
@@ -340,7 +340,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "URP JWSSignature",
+  "title": "TRP JWSSignature",
   "description": "A detached JWS signature block.",
   "type": "object",
   "required": ["protected", "signature"],

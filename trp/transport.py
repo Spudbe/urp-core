@@ -1,10 +1,10 @@
-# urp/transport.py
+# trp/transport.py
 
 import asyncio
 import websockets
 import json
-from urp.message import URPMessage
-from urp.core import Claim, Response
+from trp.message import TRPMessage
+from trp.core import Claim, Response
 
 
 class AgentServer:
@@ -25,9 +25,9 @@ class AgentServer:
                 if data.get("type") != "claim":
                     continue
 
-                incoming = URPMessage.from_json(raw, payload_cls=Claim)
+                incoming = TRPMessage.from_json(raw, payload_cls=Claim)
                 response: Response = self.agent.evaluate_claim(incoming.payload)
-                reply = URPMessage("response", response, self.agent.name)
+                reply = TRPMessage("response", response, self.agent.name)
                 await websocket.send(reply.to_json(compact=True))
 
         except Exception as e:
@@ -43,7 +43,7 @@ class AgentServer:
 
 class AgentClient:
     """
-    A WebSocket client that sends one URPMessage and waits for one reply.
+    A WebSocket client that sends one TRPMessage and waits for one reply.
     """
     def __init__(self, sender_name: str, target_uri: str):
         self.sender = sender_name
@@ -60,15 +60,15 @@ class AgentClient:
             self._ws = None
         return False
 
-    async def send(self, urp_msg: URPMessage) -> URPMessage:
+    async def send(self, trp_msg: TRPMessage) -> TRPMessage:
         if self._ws is not None:
             ws = self._ws
         else:
             ws = await websockets.connect(self.target_uri)
         try:
-            await ws.send(urp_msg.to_json(compact=True))
+            await ws.send(trp_msg.to_json(compact=True))
             raw = await ws.recv()
-            return URPMessage.from_json(raw, payload_cls=Response)
+            return TRPMessage.from_json(raw, payload_cls=Response)
         finally:
             if self._ws is None:
                 await ws.close()

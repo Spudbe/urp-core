@@ -1,4 +1,4 @@
-"""Structured claims for URP v0.5.
+"""Structured claims for TRP v0.5.
 
 Replaces free-text ``statement: str`` in ``Claim`` with machine-parseable
 propositions that can be mechanically matched to ToolReceipt evidence.
@@ -16,7 +16,7 @@ Each proposition supports:
 
 Deferred to later versions:
 - ``FactualAssertion`` (SPO triples) — no mechanical verification path yet
-- RFC 8785 (JCS) canonicalization — uses URP's existing sorted-key compact JSON
+- RFC 8785 (JCS) canonicalization — uses TRP's existing sorted-key compact JSON
 - NLP parsing of free-text into structured claims
 """
 
@@ -30,11 +30,11 @@ from typing import Any, Optional, Union
 
 
 # ---------------------------------------------------------------------------
-# Canonical JSON (matches URP's existing pattern in core.py)
+# Canonical JSON (matches TRP's existing pattern in core.py)
 # ---------------------------------------------------------------------------
 
 def _canonical_json(obj: Any) -> str:
-    """URP canonical JSON: sorted keys, compact separators."""
+    """TRP canonical JSON: sorted keys, compact separators."""
     return json.dumps(obj, sort_keys=True, separators=(",", ":"))
 
 
@@ -275,7 +275,7 @@ def proposition_from_dict(data: dict) -> Proposition:
 
 @dataclass(frozen=True)
 class StructuredClaim:
-    """Machine-parseable claim content for URP.
+    """Machine-parseable claim content for TRP.
 
     Replaces the free-text ``statement: str`` as the authoritative
     proposition in a Claim. During the transition period, both

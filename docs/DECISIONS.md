@@ -1,6 +1,6 @@
 # Design Decisions
 
-Architectural and strategic decisions made during URP development, with rationale.
+Architectural and strategic decisions made during TRP development, with rationale.
 
 ## Evidence-first pivot
 
@@ -14,7 +14,7 @@ Architectural and strategic decisions made during URP development, with rational
 
 **Why:** Cleaner separation of concerns. ProofReference is a citation pointer — it says "here is where the proof lives" (hash + URI + summary). It is metadata about evidence, not evidence itself. ToolReceipt is the actual verifiable record. Mixing them would overload ProofReference with two different roles. The evidence list on Claim also allows multiple receipts per claim.
 
-## BUSL-1.1, not MIT
+## Apache-2.0, not MIT
 
 **Decision:** Licensed under Business Source License 1.1 with change date 2030-03-21, converting to Apache-2.0.
 
@@ -34,9 +34,9 @@ Architectural and strategic decisions made during URP development, with rational
 
 ## AgentCapability separate from A2A agent cards
 
-**Decision:** AgentCapability is a URP-native type, not an extension of A2A agent cards.
+**Decision:** AgentCapability is a TRP-native type, not an extension of A2A agent cards.
 
-**Why:** URP owns claim verification; A2A owns agent discovery. Coupling them would create a dependency on A2A's schema evolution. AgentCapability aligns with A2A's concept (both declare what an agent can do) but is self-contained. An A2A adapter can map between them at the transport layer.
+**Why:** TRP owns claim verification; A2A owns agent discovery. Coupling them would create a dependency on A2A's schema evolution. AgentCapability aligns with A2A's concept (both declare what an agent can do) but is self-contained. An A2A adapter can map between them at the transport layer.
 
 ## ClaimKind separate from ClaimType
 

@@ -1,4 +1,4 @@
-"""A knowledge base interface and default implementation for URP.
+"""A knowledge base interface and default implementation for TRP.
 
 This module defines an abstract `KnowledgeBase` ABC with a `query` method,
 a concrete `InMemoryKnowledgeBase` backed by a dictionary, and a
@@ -42,7 +42,7 @@ def get_fact(question: str) -> Optional[str]:
     """Return the factual answer to a question if known, else None.
 
     This function preserves the original module-level API so that existing
-    callers (e.g. ``from urp.knowledge_base import get_fact``) continue to
+    callers (e.g. ``from trp.knowledge_base import get_fact``) continue to
     work without changes.
     """
     return _default_kb.query(question)

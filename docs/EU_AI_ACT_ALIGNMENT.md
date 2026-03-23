@@ -1,14 +1,14 @@
 # EU AI Act Alignment
 
-How URP's capabilities map to EU AI Act requirements. This is a technical mapping, not legal advice.
+How TRP's capabilities map to EU AI Act requirements. This is a technical mapping, not legal advice.
 
 ## Overview
 
-URP provides structured claim accountability that aligns with the EU AI Act's traceability and documentation requirements for high-risk AI systems. URP produces auditable, tamper-evident records of what agents claimed, what evidence they provided, whether claims were challenged, and how disputes were resolved.
+TRP provides structured claim accountability that aligns with the EU AI Act's traceability and documentation requirements for high-risk AI systems. TRP produces auditable, tamper-evident records of what agents claimed, what evidence they provided, whether claims were challenged, and how disputes were resolved.
 
 ## Article 14 — Human Oversight
 
-URP's live demo and structured claims provide human-readable verification results. `render_statement()` auto-generates human-readable summaries from machine-parseable propositions. The web interface at `/.well-known/urp-capability.json` and the SSE-streamed simulation allow human operators to observe the full claim lifecycle in real time: claim submission, challenge, verification, and settlement.
+TRP's live demo and structured claims provide human-readable verification results. `render_statement()` auto-generates human-readable summaries from machine-parseable propositions. The web interface at `/.well-known/trp-capability.json` and the SSE-streamed simulation allow human operators to observe the full claim lifecycle in real time: claim submission, challenge, verification, and settlement.
 
 SettlementMessage records provide an auditable trail of outcomes with researcher and challenger balance deltas, enabling human review of dispute resolution.
 
@@ -24,9 +24,9 @@ SettlementMessage records provide an auditable trail of outcomes with researcher
 
 ## Article 17 — Quality Management System
 
-URP produces three categories of auditable records:
+TRP produces three categories of auditable records:
 
-| Record type | What it proves | URP type |
+| Record type | What it proves | TRP type |
 |-------------|---------------|----------|
 | Tool receipts | What tool was called, with what inputs, and what output was produced | ToolReceipt |
 | Structured claims | What was asserted, in machine-parseable form | StructuredClaim |
@@ -34,9 +34,9 @@ URP produces three categories of auditable records:
 
 All records are serialisable to JSON via `to_dict()`, hashable, and optionally signable with Ed25519 JWS.
 
-## What URP Provides
+## What TRP Provides
 
-| EU AI Act requirement | URP feature |
+| EU AI Act requirement | TRP feature |
 |----------------------|-------------|
 | Traceability of outputs | ToolReceipt with input/output hashes and timestamps |
 | Documentation of decisions | SettlementMessage with outcome, deltas, and notes |
@@ -45,13 +45,13 @@ All records are serialisable to JSON via `to_dict()`, hashable, and optionally s
 | Authentication | Ed25519 JWS signing with evidence strength classification |
 | Audit trail | Full claim lifecycle: claim → challenge → verify → settle |
 
-## What URP Does NOT Provide
+## What TRP Does NOT Provide
 
-- **Risk assessment** — URP does not classify AI systems by risk level.
-- **Conformity assessment** — URP does not perform or document conformity assessments.
-- **CE marking** — URP has no relationship to product certification.
-- **Fundamental rights impact assessment** — URP does not assess societal impact.
-- **Bias detection** — URP verifies tool outputs, not fairness or representativeness.
-- **Data governance** — URP does not manage training data quality or provenance.
+- **Risk assessment** — TRP does not classify AI systems by risk level.
+- **Conformity assessment** — TRP does not perform or document conformity assessments.
+- **CE marking** — TRP has no relationship to product certification.
+- **Fundamental rights impact assessment** — TRP does not assess societal impact.
+- **Bias detection** — TRP verifies tool outputs, not fairness or representativeness.
+- **Data governance** — TRP does not manage training data quality or provenance.
 
-URP is an audit trail mechanism for inter-agent communication, not a compliance platform. It provides the evidentiary infrastructure that a compliance system could build on.
+TRP is an audit trail mechanism for inter-agent communication, not a compliance platform. It provides the evidentiary infrastructure that a compliance system could build on.

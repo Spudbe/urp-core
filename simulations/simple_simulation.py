@@ -1,4 +1,4 @@
-"""Run a simple URP simulation with JSON messages."""
+"""Run a simple TRP simulation with JSON messages."""
 
 import logging
 import os
@@ -7,9 +7,9 @@ import sys
 # fix imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from urp.agent import ResearcherAgent, ChallengerAgent, VerifierAgent
-from urp.ledger import Ledger
-from urp.message import URPMessage
+from trp.agent import ResearcherAgent, ChallengerAgent, VerifierAgent
+from trp.ledger import Ledger
+from trp.message import TRPMessage
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -30,7 +30,7 @@ def run_simulation() -> None:
 
     # 1) Researcher creates claim
     claim = researcher.create_claim(query)
-    msg_claim = URPMessage("claim", claim, researcher.name)
+    msg_claim = TRPMessage("claim", claim, researcher.name)
     compact = msg_claim.to_json(compact=True)
     pretty = msg_claim.to_json(compact=False)
     logging.info("Sending CLAIM message (compact):")
@@ -43,7 +43,7 @@ def run_simulation() -> None:
 
     # 2) Challenger evaluates
     response = challenger.evaluate_claim(claim)
-    msg_challenge = URPMessage("response", response, challenger.name)
+    msg_challenge = TRPMessage("response", response, challenger.name)
     logging.info("\nSending CHALLENGE message:")
     logging.info(msg_challenge.to_json(compact=True))
 
@@ -52,7 +52,7 @@ def run_simulation() -> None:
 
     # 3) Verifier evaluates
     final_resp = verifier.evaluate_claim(claim)
-    msg_verifier = URPMessage("response", final_resp, verifier.name)
+    msg_verifier = TRPMessage("response", final_resp, verifier.name)
     logging.info("\nSending VERIFICATION message:")
     logging.info(msg_verifier.to_json(compact=False))
 

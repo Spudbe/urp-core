@@ -1,4 +1,4 @@
-"""Provider-agnostic LLM adapter interface for URP agents.
+"""Provider-agnostic LLM adapter interface for TRP agents.
 
 This module defines an abstract base class for LLM adapters and a concrete
 implementation using the Groq API. Any LLM provider can be integrated by

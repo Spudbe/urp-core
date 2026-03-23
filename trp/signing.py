@@ -1,7 +1,7 @@
-"""JWS signing utilities for URP ToolReceipts and URPMessage envelopes.
+"""JWS signing utilities for TRP ToolReceipts and TRPMessage envelopes.
 
 Provides Ed25519 key generation, detached JWS signing and verification,
-and convenience functions for signing ToolReceipts and URPMessage envelopes.
+and convenience functions for signing ToolReceipts and TRPMessage envelopes.
 
 v0.4 scope:
 - Ed25519 only (OKP key type)
@@ -19,7 +19,7 @@ Requires: jwcrypto >= 1.5.6
 
 Typical usage::
 
-    from urp.signing import generate_ed25519_keypair, sign_tool_receipt, verify_tool_receipt_signature
+    from trp.signing import generate_ed25519_keypair, sign_tool_receipt, verify_tool_receipt_signature
 
     priv, pub = generate_ed25519_keypair(kid="agent-1")
     signed = sign_tool_receipt(receipt, priv, signer_role="caller")
@@ -33,7 +33,7 @@ from typing import Optional
 
 from jwcrypto import jwk, jws
 
-from urp.core import EvidenceStrength, JWSSignature, ToolReceipt
+from trp.core import EvidenceStrength, JWSSignature, ToolReceipt
 
 
 def canonical_json_bytes(obj: dict) -> bytes:
@@ -86,7 +86,7 @@ def sign_detached(
         payload: The bytes to sign.
         private_jwk: An Ed25519 private JWK.
         kid: Optional key ID to include in the protected header.
-        typ: Optional type header (e.g. "urp-receipt+jws").
+        typ: Optional type header (e.g. "trp-receipt+jws").
 
     Returns:
         A JWSSignature with protected header and signature value.
@@ -222,7 +222,7 @@ def sign_tool_receipt(
     signable["evidence_strength"] = new_strength.value
     payload = canonical_json_bytes(signable)
 
-    sig = sign_detached(payload, private_jwk, kid=kid, typ="urp-receipt+jws")
+    sig = sign_detached(payload, private_jwk, kid=kid, typ="trp-receipt+jws")
 
     # Build a new receipt with the signature
     return ToolReceipt(
@@ -280,11 +280,11 @@ def verify_tool_receipt_signature(
 
 
 def sign_message_envelope(
-    message,  # URPMessage — not type-hinted to avoid circular import
+    message,  # TRPMessage — not type-hinted to avoid circular import
     private_jwk: jwk.JWK,
     kid: Optional[str] = None,
 ) -> JWSSignature:
-    """Sign a URPMessage envelope and return a detached JWS signature.
+    """Sign a TRPMessage envelope and return a detached JWS signature.
 
     The signature covers the canonical JSON of the full message dict
     (protocol_version, message_id, timestamp, sender, type, payload).
@@ -293,7 +293,7 @@ def sign_message_envelope(
     separately for detached JWS usage.
 
     Args:
-        message: A URPMessage instance.
+        message: A TRPMessage instance.
         private_jwk: An Ed25519 private JWK.
         kid: Optional key ID override.
 
@@ -315,18 +315,18 @@ def sign_message_envelope(
         ),
     }
     payload = canonical_json_bytes(wrapper)
-    return sign_detached(payload, private_jwk, kid=kid, typ="urp-message+jws")
+    return sign_detached(payload, private_jwk, kid=kid, typ="trp-message+jws")
 
 
 def verify_message_envelope(
-    message,  # URPMessage
+    message,  # TRPMessage
     signature: JWSSignature,
     public_jwk: jwk.JWK,
 ) -> bool:
-    """Verify a detached JWS signature over a URPMessage envelope.
+    """Verify a detached JWS signature over a TRPMessage envelope.
 
     Args:
-        message: The URPMessage to verify.
+        message: The TRPMessage to verify.
         signature: The detached JWSSignature.
         public_jwk: The Ed25519 public JWK.
 

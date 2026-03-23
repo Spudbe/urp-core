@@ -1,7 +1,7 @@
-"""Shared LLM-backed agent classes for URP simulations.
+"""Shared LLM-backed agent classes for TRP simulations.
 
 Provides ResearcherLLM, ChallengerLLM, and VerifierLLM — the three agent
-roles in the URP claim lifecycle. Each wraps an LLMAdapter and handles
+roles in the TRP claim lifecycle. Each wraps an LLMAdapter and handles
 prompt construction, response parsing, and protocol object creation.
 """
 
@@ -11,7 +11,7 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 
-from urp.core import (
+from trp.core import (
     Claim,
     ClaimType,
     Decision,
@@ -23,7 +23,7 @@ from urp.core import (
     Stake,
     ToolReceipt,
 )
-from urp.llm import LLMAdapter
+from trp.llm import LLMAdapter
 
 
 class ResearcherLLM:

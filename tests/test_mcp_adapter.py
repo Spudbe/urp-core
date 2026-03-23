@@ -1,18 +1,18 @@
-"""Tests for urp/mcp_adapter.py — MCP integration utilities."""
+"""Tests for trp/mcp_adapter.py — MCP integration utilities."""
 
 import json
 
 import pytest
 
-from urp.core import (
+from trp.core import (
     EvidenceStrength,
     NondeterminismClass,
     ReplayClass,
     SideEffectClass,
     ToolReceipt,
 )
-from urp.mcp_adapter import (
-    URP_META_KEY,
+from trp.mcp_adapter import (
+    TRP_META_KEY,
     extract_tool_receipt,
     wrap_mcp_tool_result,
     wrap_tool_call,
@@ -199,8 +199,8 @@ class TestWrapMcpToolResult:
             output={"input": 10, "result": 55, "algorithm": "iterative"},
         )
         meta = result["_meta"]
-        assert URP_META_KEY in meta
-        receipt_dict = meta[URP_META_KEY]
+        assert TRP_META_KEY in meta
+        receipt_dict = meta[TRP_META_KEY]
         assert receipt_dict["tool_name"] == "compute_fibonacci"
         assert "input_sha256" in receipt_dict
         assert "output_sha256" in receipt_dict
@@ -212,7 +212,7 @@ class TestWrapMcpToolResult:
             inputs={},
             output={},
         )
-        receipt_dict = result["_meta"][URP_META_KEY]
+        receipt_dict = result["_meta"][TRP_META_KEY]
         assert receipt_dict["protocol_family"] == "mcp"
 
     def test_receipt_in_meta_round_trips(self):
@@ -223,7 +223,7 @@ class TestWrapMcpToolResult:
             inputs={"n": 10},
             output={"input": 10, "result": 55, "algorithm": "iterative"},
         )
-        receipt = ToolReceipt.from_dict(result["_meta"][URP_META_KEY])
+        receipt = ToolReceipt.from_dict(result["_meta"][TRP_META_KEY])
         assert receipt.tool_name == "compute_fibonacci"
         assert receipt.replay_class == ReplayClass.STRONG
 
@@ -240,7 +240,7 @@ class TestExtractToolReceipt:
             inputs={"a": 1},
             output={"b": 2},
         )
-        meta = {URP_META_KEY: receipt.to_dict()}
+        meta = {TRP_META_KEY: receipt.to_dict()}
         extracted = extract_tool_receipt(meta)
         assert extracted is not None
         assert extracted.tool_name == "test"
@@ -275,8 +275,8 @@ class TestExtractToolReceipt:
 
     def test_extract_then_verify(self):
         """Extract a receipt from _meta, then verify it with ToolReceiptVerifier."""
-        from urp.deterministic_tools import BUILTIN_TOOLS
-        from urp.verify import ToolReceiptVerifier, VerificationStatus
+        from trp.deterministic_tools import BUILTIN_TOOLS
+        from trp.verify import ToolReceiptVerifier, VerificationStatus
 
         # Server side: wrap the tool result
         output = {"input": 10, "result": 55, "algorithm": "iterative"}

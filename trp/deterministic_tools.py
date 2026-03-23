@@ -1,4 +1,4 @@
-"""Built-in deterministic tools for URP receipt verification.
+"""Built-in deterministic tools for TRP receipt verification.
 
 Each function takes a dict (the receipt's input_inline) and returns a dict
 (the expected output_inline). These are pure functions with no randomness,
@@ -7,7 +7,7 @@ verification.
 
 Usage:
 
-    from urp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
+    from trp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
 
     # Register all built-in tools with a verifier:
     for name, fn in BUILTIN_TOOLS.items():

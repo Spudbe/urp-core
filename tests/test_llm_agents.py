@@ -1,9 +1,9 @@
-"""Tests for urp.llm_agents and urp.llm adapters."""
+"""Tests for trp.llm_agents and trp.llm adapters."""
 
 import pytest
 from unittest.mock import MagicMock
 
-from urp.core import (
+from trp.core import (
     Claim,
     ClaimType,
     Decision,
@@ -11,8 +11,8 @@ from urp.core import (
     ProofReference,
     Stake,
 )
-from urp.llm import OllamaAdapter, OpenAIAdapter
-from urp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
+from trp.llm import OllamaAdapter, OpenAIAdapter
+from trp.llm_agents import ChallengerLLM, ResearcherLLM, VerifierLLM
 
 
 def _mock_llm(response: str) -> MagicMock:

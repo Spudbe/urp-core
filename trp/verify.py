@@ -6,7 +6,7 @@ No LLM, no trust, no API key required.
 
 Typical usage:
 
-    from urp.verify import ToolReceiptVerifier
+    from trp.verify import ToolReceiptVerifier
 
     verifier = ToolReceiptVerifier()
     verifier.register("compute_fibonacci", compute_fibonacci)
@@ -20,9 +20,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from urp.core import NondeterminismClass, ReplayClass, SideEffectClass, ToolReceipt
-from urp.structured_claim import StructuredClaim
-from urp.claim_verifier import match_claim as _match_structured_claim, PropStatus
+from trp.core import NondeterminismClass, ReplayClass, SideEffectClass, ToolReceipt
+from trp.structured_claim import StructuredClaim
+from trp.claim_verifier import match_claim as _match_structured_claim, PropStatus
 
 
 class VerificationStatus(Enum):

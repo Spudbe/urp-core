@@ -1,4 +1,4 @@
-# urp/core.py
+# trp/core.py
 
 from __future__ import annotations
 import hashlib
@@ -10,7 +10,7 @@ from typing import Optional
 
 
 class ClaimType(Enum):
-    """Type of a URP claim."""
+    """Type of a TRP claim."""
     ASSERTION = "assertion"
     REQUEST = "request"
 
@@ -225,7 +225,7 @@ class ProofReference:
 @dataclass
 class Stake:
     """
-    A stake of URP Credits.
+    A stake of TRP Credits.
     Attributes:
         amount: Numeric amount staked.
         currency: Currency code (default 'URC').
@@ -254,7 +254,7 @@ class Stake:
 @dataclass
 class Claim:
     """
-    A URP claim (assertion or request).
+    A TRP claim (assertion or request).
     Attributes:
         id: UUID string identifying this claim.
         statement: The content of the claim.
@@ -301,7 +301,7 @@ class Claim:
 @dataclass
 class Response:
     """
-    A URP response to a claim.
+    A TRP response to a claim.
     Attributes:
         claim_id: The UUID of the Claim being responded to.
         decision: One of Decision.{ACCEPT, CHALLENGE, REJECT}.
@@ -384,7 +384,7 @@ class SettlementMessage:
 
 @dataclass
 class AgentIdentity:
-    """Identity of a URP agent.
+    """Identity of a TRP agent.
 
     Attributes:
         id: Unique identifier for the agent.
@@ -468,7 +468,7 @@ class AgentCapability:
     claim settlement — this is a discovery/preflight mechanism.
 
     Attributes:
-        protocol_version: URP protocol version this declaration targets.
+        protocol_version: TRP protocol version this declaration targets.
         agent: Identity of the declaring agent.
         supported_claim_types: ClaimType values this agent handles (assertion, request).
         supported_claim_kinds: ClaimKind values this agent can verify.

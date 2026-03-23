@@ -1,11 +1,11 @@
-"""Tests for urp/verify.py and urp/deterministic_tools.py.
+"""Tests for trp/verify.py and trp/deterministic_tools.py.
 
 Includes deterministic hash test vectors that catch serialisation drift.
 """
 
 import pytest
 
-from urp.core import (
+from trp.core import (
     Claim,
     ClaimType,
     EvidenceStrength,
@@ -16,14 +16,14 @@ from urp.core import (
     Stake,
     ToolReceipt,
 )
-from urp.deterministic_tools import (
+from trp.deterministic_tools import (
     BUILTIN_TOOLS,
     compute_factorial,
     compute_fibonacci,
     compute_sha256,
     math_eval,
 )
-from urp.verify import (
+from trp.verify import (
     BatchVerificationResult,
     ToolReceiptVerifier,
     VerificationResult,

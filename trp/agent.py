@@ -1,7 +1,7 @@
-"""Agent base classes and simple implementations for URP.
+"""Agent base classes and simple implementations for TRP.
 
 This module defines an abstract `Agent` class with methods for sending and
-receiving URP messages. Concrete agent classes (`ResearcherAgent`,
+receiving TRP messages. Concrete agent classes (`ResearcherAgent`,
 `ChallengerAgent`, `VerifierAgent`) extend `Agent` and implement specific
 behaviours:
 
@@ -25,7 +25,7 @@ from .knowledge_base import get_fact
 
 
 class Agent(ABC):
-    """Abstract base class for URP agents."""
+    """Abstract base class for TRP agents."""
 
     def __init__(self, name: str) -> None:
         self.name = name

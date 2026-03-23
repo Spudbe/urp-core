@@ -1,10 +1,10 @@
-"""Tests for urp/signing.py — JWS signing for ToolReceipts and URPMessages."""
+"""Tests for trp/signing.py — JWS signing for ToolReceipts and TRPMessages."""
 
 import json
 
 import pytest
 
-from urp.core import (
+from trp.core import (
     Claim,
     ClaimType,
     EvidenceStrength,
@@ -15,8 +15,8 @@ from urp.core import (
     Stake,
     ToolReceipt,
 )
-from urp.message import URPMessage
-from urp.signing import (
+from trp.message import TRPMessage
+from trp.signing import (
     _update_evidence_strength,
     canonical_json_bytes,
     generate_ed25519_keypair,
@@ -141,11 +141,11 @@ class TestDetachedSignature:
 
     def test_typ_in_protected_header(self):
         priv, _ = generate_ed25519_keypair()
-        sig = sign_detached(b"data", priv, typ="urp-receipt+jws")
+        sig = sign_detached(b"data", priv, typ="trp-receipt+jws")
         import base64
         padded = sig.protected + "=" * (-len(sig.protected) % 4)
         header = json.loads(base64.urlsafe_b64decode(padded))
-        assert header["typ"] == "urp-receipt+jws"
+        assert header["typ"] == "trp-receipt+jws"
 
 
 # ---------- Evidence strength escalation ----------
@@ -257,20 +257,20 @@ class TestToolReceiptSigning:
 class TestMessageEnvelopeSigning:
     def test_sign_and_verify_round_trip(self):
         priv, pub = generate_ed25519_keypair()
-        msg = URPMessage("claim", _make_claim(), "agent-1")
+        msg = TRPMessage("claim", _make_claim(), "agent-1")
         sig = sign_message_envelope(msg, priv)
         assert verify_message_envelope(msg, sig, pub)
 
     def test_wrong_key_fails(self):
         priv1, _ = generate_ed25519_keypair()
         _, pub2 = generate_ed25519_keypair()
-        msg = URPMessage("claim", _make_claim(), "agent-1")
+        msg = TRPMessage("claim", _make_claim(), "agent-1")
         sig = sign_message_envelope(msg, priv1)
         assert not verify_message_envelope(msg, sig, pub2)
 
     def test_tampered_message_fails(self):
         priv, pub = generate_ed25519_keypair()
-        msg = URPMessage("claim", _make_claim(), "agent-1")
+        msg = TRPMessage("claim", _make_claim(), "agent-1")
         sig = sign_message_envelope(msg, priv)
         # Tamper with the sender
         msg.sender = "evil-agent"
@@ -278,10 +278,10 @@ class TestMessageEnvelopeSigning:
 
     def test_kid_in_envelope_signature(self):
         priv, _ = generate_ed25519_keypair(kid="envelope-key")
-        msg = URPMessage("claim", _make_claim(), "agent-1")
+        msg = TRPMessage("claim", _make_claim(), "agent-1")
         sig = sign_message_envelope(msg, priv)
         import base64
         padded = sig.protected + "=" * (-len(sig.protected) % 4)
         header = json.loads(base64.urlsafe_b64decode(padded))
         assert header["kid"] == "envelope-key"
-        assert header["typ"] == "urp-message+jws"
+        assert header["typ"] == "trp-message+jws"

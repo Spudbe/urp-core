@@ -5,9 +5,9 @@ from dataclasses import asdict
 
 PROTOCOL_VERSION = "0.3.0"
 
-class URPMessage:
+class TRPMessage:
     """
-    A wrapper for URP objects when sending over the wire.
+    A wrapper for TRP objects when sending over the wire.
     Carries metadata + a JSON‐serializable payload.
     """
     def __init__(self, msg_type: str, payload, sender: str,
@@ -41,7 +41,7 @@ class URPMessage:
     @classmethod
     def from_json(cls, json_str: str, payload_cls):
         """
-        Reconstruct a URPMessage from its JSON representation.
+        Reconstruct a TRPMessage from its JSON representation.
         payload_cls must implement from_dict().
         """
         data = json.loads(json_str)

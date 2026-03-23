@@ -1,11 +1,11 @@
-Universal Reasoning Protocol – Draft Specification
+Tool Receipt Protocol – Draft Specification
 
 **Status: Protocol v0.3.0 — reference implementation only. Not production-ready. Spec and API subject to change.**
 
-This document describes the Universal Reasoning Protocol (URP), a draft proposal for structured claim accountability between autonomous agents. URP defines message types and interaction patterns that allow agents to submit claims with proof references and economic stakes, and for other agents to evaluate, challenge, or accept those claims.
+This document describes the Tool Receipt Protocol (TRP), a draft proposal for structured claim accountability between autonomous agents. TRP defines message types and interaction patterns that allow agents to submit claims with proof references and economic stakes, and for other agents to evaluate, challenge, or accept those claims.
 
 Overview
-URP messages carry structured claims, references to supporting proofs, staked value, and responses. Agents interacting via URP follow a request–response pattern: one agent submits a claim with a stake, other agents evaluate the claim and either accept it, reject it, or challenge it. Verifier agents arbitrate disputes and the protocol defines how staked funds are redistributed based on the outcome.
+TRP messages carry structured claims, references to supporting proofs, staked value, and responses. Agents interacting via TRP follow a request–response pattern: one agent submits a claim with a stake, other agents evaluate the claim and either accept it, reject it, or challenge it. Verifier agents arbitrate disputes and the protocol defines how staked funds are redistributed based on the outcome.
 
 Core Message Types
 Claim
@@ -19,7 +19,7 @@ proof_ref	string	Reference (e.g. a hash) to an external proof object backing the
 stake	Stake	The amount of value locked to signal confidence and pay verifiers.
 
 ProofReference
-A ProofReference is a pointer to an external proof artifact. URP itself does not mandate a proof format, but it requires a proof to be verifiable and tamper‑evident. A ProofReference includes:
+A ProofReference is a pointer to an external proof artifact. TRP itself does not mandate a proof format, but it requires a proof to be verifiable and tamper‑evident. A ProofReference includes:
 
 Field	Type	Description
 hash	string	Cryptographic hash of the proof data.
@@ -31,7 +31,7 @@ Stake
 A Stake signals the sender’s confidence and funds the verification process. It includes:
 
 Field	Type	Description
-amount	decimal	Quantity of URP credits locked with the claim.
+amount	decimal	Quantity of TRP credits locked with the claim.
 currency	string	Unit of account (e.g. URC).
 refundable	bool	Indicates whether stake is returned upon acceptance or distributed to verifiers.
 
@@ -95,7 +95,7 @@ The following areas are recognised as necessary for a complete protocol but are 
 
 ## Evidence Types
 
-URP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. Claims backed by ToolReceipts are verifiable. Claims backed only by a ProofReference are assertions. URP treats these differently in the challenge/verify flow.
+TRP distinguishes between two levels of evidence. A ProofReference is a pointer — it records a hash, a location, and a summary, but does not itself constitute verifiable proof. An EvidenceType is a structured record that can be mechanically verified without trusting the same agent that made the claim. Claims backed by ToolReceipts are verifiable. Claims backed only by a ProofReference are assertions. TRP treats these differently in the challenge/verify flow.
 
 A Claim carries an `evidence` list of zero or more ToolReceipt objects. When present, challengers can verify the claim by replaying tool calls and comparing output hashes, rather than trusting the claiming agent.
 
@@ -165,13 +165,13 @@ A ToolReceipt is the first concrete EvidenceType. It records a tool call with en
 
 ## Signing Model
 
-URP uses Ed25519 detached JWS signatures (RFC 7515) for authentication of ToolReceipts and URPMessage envelopes.
+TRP uses Ed25519 detached JWS signatures (RFC 7515) for authentication of ToolReceipts and TRPMessage envelopes.
 
 **Algorithm:** Ed25519 only (OKP key type, EdDSA algorithm). Key pairs generated via `generate_ed25519_keypair()`.
 
 **Canonical form:** Payload is canonical JSON: `json.dumps(obj, sort_keys=True, separators=(",", ":"))`. Note: RFC 8785 (JCS) adoption planned for v0.6.
 
-**Detached JWS:** Signatures are detached — the JWS token contains only the protected header and signature, not the payload. The protected header includes `alg: "EdDSA"`, optional `kid`, and `typ` (either `"urp-receipt+jws"` or `"urp-message+jws"`).
+**Detached JWS:** Signatures are detached — the JWS token contains only the protected header and signature, not the payload. The protected header includes `alg: "EdDSA"`, optional `kid`, and `typ` (either `"trp-receipt+jws"` or `"trp-message+jws"`).
 
 **ToolReceipt signing:** `sign_tool_receipt()` signs the canonical JSON of the receipt dict (excluding the `signature` field), stores the JWS in the receipt's `signature` field, and updates `evidence_strength`:
 
@@ -182,23 +182,23 @@ URP uses Ed25519 detached JWS signatures (RFC 7515) for authentication of ToolRe
 | CALLER_SIGNED | provider | DUAL_SIGNED |
 | PROVIDER_SIGNED | caller | DUAL_SIGNED |
 
-**URPMessage signing:** `sign_message_envelope()` signs the canonical JSON of the full message dict and returns a detached `JWSSignature`. The signature travels alongside the message, not inside it.
+**TRPMessage signing:** `sign_message_envelope()` signs the canonical JSON of the full message dict and returns a detached `JWSSignature`. The signature travels alongside the message, not inside it.
 
 **Verification:** `verify_tool_receipt_signature()` and `verify_message_envelope()` reconstruct the canonical payload and verify against a public key.
 
-**Implementation:** `urp/signing.py`. Requires `jwcrypto>=1.5.6`.
+**Implementation:** `trp/signing.py`. Requires `jwcrypto>=1.5.6`.
 
 ## Transport Adapters
 
-URP is transport-agnostic. The reference implementation uses WebSockets. Production deployments should use existing agent communication protocols as the transport layer rather than building new transport infrastructure.
+TRP is transport-agnostic. The reference implementation uses WebSockets. Production deployments should use existing agent communication protocols as the transport layer rather than building new transport infrastructure.
 
 ### MCP Transport Adapter
 
-URP ToolReceipts are carried as `_meta["urp:tool_receipt"]` on MCP `CallToolResult` responses. This is the standard MCP mechanism for passing metadata to client applications without exposing it to the model.
+TRP ToolReceipts are carried as `_meta["trp:tool_receipt"]` on MCP `CallToolResult` responses. This is the standard MCP mechanism for passing metadata to client applications without exposing it to the model.
 
-**Server-side protocol:** When an MCP server completes a tool call, it creates a ToolReceipt using `wrap_tool_call()` (or `wrap_mcp_tool_result()` for the full `CallToolResult` shape). The receipt is serialised via `to_dict()` and placed in `_meta["urp:tool_receipt"]`.
+**Server-side protocol:** When an MCP server completes a tool call, it creates a ToolReceipt using `wrap_tool_call()` (or `wrap_mcp_tool_result()` for the full `CallToolResult` shape). The receipt is serialised via `to_dict()` and placed in `_meta["trp:tool_receipt"]`.
 
-**Client-side protocol:** An MCP client receiving a `CallToolResult` checks `_meta` for the key `urp:tool_receipt`. If present, it deserialises via `ToolReceipt.from_dict()` and can verify using `ToolReceiptVerifier.verify()`.
+**Client-side protocol:** An MCP client receiving a `CallToolResult` checks `_meta` for the key `trp:tool_receipt`. If present, it deserialises via `ToolReceipt.from_dict()` and can verify using `ToolReceiptVerifier.verify()`.
 
 **End-to-end flow:**
 
@@ -209,31 +209,31 @@ URP ToolReceipts are carried as `_meta["urp:tool_receipt"]` on MCP `CallToolResu
 | 3. Extract | `extract_tool_receipt()` | Client recovers ToolReceipt from `_meta` |
 | 4. Verify | `verifier.verify(receipt)` | Client replays tool and compares output hash |
 
-**Implementation:** `urp/mcp_adapter.py` — `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`.
+**Implementation:** `trp/mcp_adapter.py` — `wrap_tool_call()`, `wrap_mcp_tool_result()`, `extract_tool_receipt()`.
 
 ### A2A Transport Adapter
 
-URP AgentCapability is embedded as an A2A extension with URI `urn:urp:agent-capability` inside `AgentCard.capabilities.extensions`.
+TRP AgentCapability is embedded as an A2A extension with URI `urn:trp:agent-capability` inside `AgentCard.capabilities.extensions`.
 
-**URP → A2A translation:** `urp_capability_to_a2a_card()` generates an A2A AgentCard with:
-- URP skills mapped from `ClaimKind` values (one skill per kind with `urp_claim_kind:` tag prefix)
-- Full `AgentCapability` embedded in extension `params` as `urpCapabilityInline`
-- Interface entry with `protocolBinding: "URP"` for protocol identification
-- Skill tags prefixed with `urp_claim_type:`, `urp_evidence:`, and `urp_claim_kind:` for discovery
+**TRP → A2A translation:** `trp_capability_to_a2a_card()` generates an A2A AgentCard with:
+- TRP skills mapped from `ClaimKind` values (one skill per kind with `trp_claim_kind:` tag prefix)
+- Full `AgentCapability` embedded in extension `params` as `trpCapabilityInline`
+- Interface entry with `protocolBinding: "TRP"` for protocol identification
+- Skill tags prefixed with `trp_claim_type:`, `trp_evidence:`, and `trp_claim_kind:` for discovery
 
-**A2A → URP translation:** `a2a_card_to_urp_capability()` extracts `AgentCapability` from the `urn:urp:agent-capability` extension's `urpCapabilityInline` field. Fallback: reconstructs capability from skill tags prefixed with `urp_claim_kind:`, `urp_claim_type:`, and `urp_evidence:`.
+**A2A → TRP translation:** `a2a_card_to_trp_capability()` extracts `AgentCapability` from the `urn:trp:agent-capability` extension's `trpCapabilityInline` field. Fallback: reconstructs capability from skill tags prefixed with `trp_claim_kind:`, `trp_claim_type:`, and `trp_evidence:`.
 
-**Discovery endpoints:** URP serves `/.well-known/urp-capability.json` (native URP format) and `/.well-known/agent-card.json` (A2A-compatible format). Both derive from the same `AgentCapability` object.
+**Discovery endpoints:** TRP serves `/.well-known/trp-capability.json` (native TRP format) and `/.well-known/agent-card.json` (A2A-compatible format). Both derive from the same `AgentCapability` object.
 
-**Signing caveat:** A2A requires RFC 8785 (JCS) for signed agent cards. URP currently uses sorted-key compact JSON (`json.dumps(sort_keys=True, separators=(",",":"))`). Signatures are NOT bridged between the two systems. Full JCS adoption is deferred to v0.6.
+**Signing caveat:** A2A requires RFC 8785 (JCS) for signed agent cards. TRP currently uses sorted-key compact JSON (`json.dumps(sort_keys=True, separators=(",",":"))`). Signatures are NOT bridged between the two systems. Full JCS adoption is deferred to v0.6.
 
-**Implementation:** `urp/a2a_adapter.py` — `urp_capability_to_a2a_card()`, `a2a_card_to_urp_capability()`.
+**Implementation:** `trp/a2a_adapter.py` — `trp_capability_to_a2a_card()`, `a2a_card_to_trp_capability()`.
 
 ## AgentCapability
 
 AgentCapability is a preflight declaration that lets an agent advertise what kinds of claims it can verify, what evidence it accepts, and what stake policy it enforces. It is used for routing — a sender can check an agent's capability before submitting a claim, avoiding wasted stakes on agents that cannot handle the claim type.
 
-AgentCapability is not part of claim settlement. It is a discovery mechanism that aligns with A2A agent discovery (where signed agent cards declare capabilities) without coupling URP to A2A transport.
+AgentCapability is not part of claim settlement. It is a discovery mechanism that aligns with A2A agent discovery (where signed agent cards declare capabilities) without coupling TRP to A2A transport.
 
 ### ClaimType vs ClaimKind
 
@@ -288,7 +288,7 @@ AgentCapability is not part of claim settlement. It is a discovery mechanism tha
 
 | Field | Type | Description |
 |-------|------|-------------|
-| protocol_version | string | URP protocol version this declaration targets. |
+| protocol_version | string | TRP protocol version this declaration targets. |
 | agent | AgentIdentity | Identity of the declaring agent. |
 | supported_claim_types | list[ClaimType] | ClaimType values this agent handles. |
 | supported_claim_kinds | list[ClaimKind] | ClaimKind values this agent can verify. |
@@ -332,7 +332,7 @@ StructuredClaim replaces free-text `statement` strings with machine-parseable pr
 
 ### Claim-to-Evidence Matching
 
-The matching algorithm in `urp/claim_verifier.py` works as follows:
+The matching algorithm in `trp/claim_verifier.py` works as follows:
 
 1. For each proposition in the structured claim, search the Claim's `evidence` list for a ToolReceipt whose `tool_name` and `input_inline` match.
 2. For `tool_output_equals`: compare the receipt's `output_inline` against the expected output. Match is exact (all keys and values must be equal).
@@ -343,5 +343,5 @@ Results use three-valued logic: `true` (evidence confirms the proposition), `fal
 
 ### Implementation
 
-- `urp/structured_claim.py` — StructuredClaim dataclass, proposition types, serialisation
-- `urp/claim_verifier.py` — ClaimVerifier with `verify_structured()` method for claim-to-evidence matching
+- `trp/structured_claim.py` — StructuredClaim dataclass, proposition types, serialisation
+- `trp/claim_verifier.py` — ClaimVerifier with `verify_structured()` method for claim-to-evidence matching

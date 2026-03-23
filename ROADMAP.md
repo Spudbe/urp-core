@@ -1,4 +1,4 @@
-# URP Roadmap
+# TRP Roadmap
 
 ## v0.5 — Current Release
 
@@ -27,17 +27,17 @@ What is complete:
 
 ## v0.2 — Previous (Public Draft)
 
-- Core protocol types, URPMessage envelope, agent framework, ledger, transport, CI
+- Core protocol types, TRPMessage envelope, agent framework, ledger, transport, CI
 
 ---
 
 ## v0.6 — Next (Hardening)
 
-**Design principle:** Make URP's evidence artifacts cryptographically interoperable and usable in CI pipelines. This is the "court-grade determinism" release.
+**Design principle:** Make TRP's evidence artifacts cryptographically interoperable and usable in CI pipelines. This is the "court-grade determinism" release.
 
 ### RFC 8785 (JCS) canonicalization
 
-- Replace sorted-key compact JSON with proper JSON Canonicalization Scheme across `urp/signing.py`, `urp/core.py`, `urp/structured_claim.py`
+- Replace sorted-key compact JSON with proper JSON Canonicalization Scheme across `trp/signing.py`, `trp/core.py`, `trp/structured_claim.py`
 - Publish cross-language test vectors (canonical bytes → expected hashes)
 - This is a breaking change boundary — treat it as the v0.6 line in the sand
 
@@ -50,13 +50,13 @@ What is complete:
 ### Remote tool replay
 
 - ToolReceiptVerifier supports HTTP-callable tools (register URL + expected schema, verifier calls and compares)
-- Makes URP usable beyond local Python functions
+- Makes TRP usable beyond local Python functions
 
 ### OpenClaw case study
 
 - Publish `docs/OPENCLAW_CASE_STUDY.md` immediately after JCS lands
-- Factual, non-marketing — maps specific URP features to specific OpenClaw failure modes
-- This becomes the "why URP exists" document for newcomers
+- Factual, non-marketing — maps specific TRP features to specific OpenClaw failure modes
+- This becomes the "why TRP exists" document for newcomers
 
 **Who it unblocks:** Framework maintainers who refuse to adopt formats without standard canonicalization. Security reviewers who need cross-environment hash reproducibility.
 
@@ -64,7 +64,7 @@ What is complete:
 
 ## v0.7 — Ecosystem Integration
 
-**Design principle:** Make URP easy to embed without adopting the full reference server. Lead with receipts, not staking.
+**Design principle:** Make TRP easy to embed without adopting the full reference server. Lead with receipts, not staking.
 
 ### Permissive interop kit (Apache-2.0)
 
@@ -74,9 +74,9 @@ What is complete:
 
 ### OpenTelemetry mapping
 
-- Define URP ↔ OTel mapping: receipt hash + claim fingerprint as span/event attributes
-- Reference exporter: URP → OTLP
-- OTel is where ops and security teams already live — URP shows up as an evidence layer inside existing traces, not a competing stack
+- Define TRP ↔ OTel mapping: receipt hash + claim fingerprint as span/event attributes
+- Reference exporter: TRP → OTLP
+- OTel is where ops and security teams already live — TRP shows up as an evidence layer inside existing traces, not a competing stack
 
 ### Canonical HTTP binding
 
@@ -89,7 +89,7 @@ What is complete:
 - Composite evidence type grouping multiple ToolReceipts, external document hashes, and signed attestations
 - Makes `_meta` less fragile — receipts can be stored as first-class artifacts referenced by hash
 
-### "URP for tool marketplaces" profile
+### "TRP for tool marketplaces" profile
 
 - Minimum evidence strength for skill installation
 - Required receipt classes for high-risk tools
@@ -98,11 +98,11 @@ What is complete:
 
 **Who it unblocks:** CrewAI, LangGraph, AutoGen, Haystack — frameworks that already support OTel and want exportable audit artifacts. Enterprises who won't touch custom transports but will accept protocol-over-HTTP + OTel.
 
-**Credibility signal:** A one-page integration recipe: "Turn on URP receipts for tool calls. See them as OTel events. Verify them externally."
+**Credibility signal:** A one-page integration recipe: "Turn on TRP receipts for tool calls. See them as OTel events. Verify them externally."
 
 ## v0.8 — Trust Infrastructure
 
-**Design principle:** Expand verification beyond deterministic replay. URP becomes a verification ladder: strong replay when possible, provider attestation when not, witness/quorum when the provider isn't trusted.
+**Design principle:** Expand verification beyond deterministic replay. TRP becomes a verification ladder: strong replay when possible, provider attestation when not, witness/quorum when the provider isn't trusted.
 
 ### Provider signature registry
 
@@ -138,18 +138,18 @@ What is complete:
 ### Review gate profile
 
 - Certain ClaimKinds must be challenged/verified by a designated verifier role with auditable outcomes
-- Standard "human oversight" envelope that URP feeds — Article 14 alignment
+- Standard "human oversight" envelope that TRP feeds — Article 14 alignment
 
 ### Log retention and export profile
 
 - How receipts, verification results, and settlements are stored, how long, and how to export for audits
 - Article 26 deployer obligation alignment
 
-### "URP and the AI Act" formal mapping
+### "TRP and the AI Act" formal mapping
 
 - Honest, precise, not overclaiming
-- Maps Articles 14, 15, 17, 26, and Title IV (Article 50) to specific URP artifacts
-- Clearly states what URP does NOT provide (risk assessment, conformity assessment, CE marking)
+- Maps Articles 14, 15, 17, 26, and Title IV (Article 50) to specific TRP artifacts
+- Clearly states what TRP does NOT provide (risk assessment, conformity assessment, CE marking)
 
 ### Incident report message type
 
@@ -162,7 +162,7 @@ What is complete:
 
 ## v1.0 — Protocol Stability
 
-**Design principle:** Make URP safe to build on. Vendors and OSS maintainers can integrate without fear of breaking changes.
+**Design principle:** Make TRP safe to build on. Vendors and OSS maintainers can integrate without fear of breaking changes.
 
 ### Schema freeze
 
@@ -181,7 +181,7 @@ What is complete:
 
 ### IETF informational draft
 
-- Frame URP as "evidence and claim interoperability" — not "AI reasoning correctness"
+- Frame TRP as "evidence and claim interoperability" — not "AI reasoning correctness"
 - Adjacent to existing IETF work on dispute protocols and verifiable provenance
 
 **Who it unblocks:** Agent marketplaces, third-party verifiers, cross-org agent workflows. Standards-adjacent adopters who need stability.
@@ -193,7 +193,7 @@ What is complete:
 ## Strategic principles
 
 1. **Lead with receipts, not staking.** The intro story is "every tool call gets a tamper-evident receipt." Staking is a marketplace profile, not the onboarding requirement.
-2. **Don't compete with observability.** LangSmith, Arize, Langfuse, W&B Weave own tracing. URP adds cryptographic accountability artifacts to their traces.
-3. **Permissive interop surface is non-negotiable.** If the only way to use URP is through BUSL code, adoption is capped. The interop kit must be Apache-2.0.
+2. **Don't compete with observability.** LangSmith, Arize, Langfuse, W&B Weave own tracing. TRP adds cryptographic accountability artifacts to their traces.
+3. **Permissive interop surface is non-negotiable.** If the only way to use TRP is through BUSL code, adoption is capped. The interop kit must be Apache-2.0.
 4. **Compliance is downstream, not the lead.** Evidence and auditability first. AI Act alignment follows naturally once the artifacts exist.
 5. **The OpenClaw crisis is the defining case study.** Every positioning conversation opens with "135,000 exposed agent instances with no audit trail."

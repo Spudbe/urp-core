@@ -4,7 +4,7 @@ Demonstrates a claim backed by a genuinely replayable ToolReceipt.
 The verifier re-runs the tool, hashes the output, and compares it to the
 receipt — no LLM, no trust, no API key required.
 
-Now uses the ToolReceiptVerifier engine from urp/verify.py.
+Now uses the ToolReceiptVerifier engine from trp/verify.py.
 """
 
 import hashlib
@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from urp.core import (
+from trp.core import (
     Claim,
     ClaimType,
     EvidenceStrength,
@@ -26,14 +26,14 @@ from urp.core import (
     Stake,
     ToolReceipt,
 )
-from urp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
-from urp.message import URPMessage
-from urp.verify import ToolReceiptVerifier, VerificationStatus
+from trp.deterministic_tools import BUILTIN_TOOLS, compute_fibonacci
+from trp.message import TRPMessage
+from trp.verify import ToolReceiptVerifier, VerificationStatus
 
 
 def main() -> None:
     print("=" * 60)
-    print("  URP Deterministic Verification Demo")
+    print("  TRP Deterministic Verification Demo")
     print("  No LLM, no API key — pure replay verification")
     print("=" * 60)
 
@@ -56,7 +56,7 @@ def main() -> None:
         tool_name="compute_fibonacci",
         tool_version="1.0.0",
         provider_name="local_python",
-        provider_id="urp-demo",
+        provider_id="trp-demo",
         protocol_family="local_python",
         started_at=datetime.now(timezone.utc).isoformat(),
         side_effect_class=SideEffectClass.NONE,
@@ -84,7 +84,7 @@ def main() -> None:
     )
 
     # 4. Print the claim as formatted JSON
-    msg = URPMessage("claim", claim, "DeterministicResearcher")
+    msg = TRPMessage("claim", claim, "DeterministicResearcher")
     print("\n--- Claim with ToolReceipt ---")
     print(msg.to_json(compact=False))
 
@@ -130,7 +130,7 @@ def main() -> None:
     print(f"  Side effects:      {receipt.side_effect_class.value}")
     print(f"  Original receipt:  VERIFIED")
     print(f"  Tampered receipt:  DETECTED")
-    print(f"\n  This is what verifiable evidence looks like in URP.")
+    print(f"\n  This is what verifiable evidence looks like in TRP.")
     print(f"  No LLM opinion. No trust. Just replay and compare.")
 
 

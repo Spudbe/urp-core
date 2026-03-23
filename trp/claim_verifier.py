@@ -9,7 +9,7 @@ Uses three-valued logic (TRUE, FALSE, UNKNOWN) for compound evaluation:
 - UNKNOWN: no mechanical verification path (missing evidence or non-replayable)
 
 This module handles claim-level matching. For receipt-level replay
-verification, use ``urp.verify.ToolReceiptVerifier``.
+verification, use ``trp.verify.ToolReceiptVerifier``.
 """
 
 from __future__ import annotations
@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
-from urp.core import ToolReceipt
-from urp.structured_claim import (
+from trp.core import ToolReceipt
+from trp.structured_claim import (
     Compound,
     LogicalOp,
     MatchMode,

@@ -1,4 +1,4 @@
-"""A minimal ledger for tracking URP credit balances and stakes.
+"""A minimal ledger for tracking TRP credit balances and stakes.
 
 This module provides a simple in‑memory ledger class. It keeps track of
 agents' balances and manages stakes for claims and challenges. In a
