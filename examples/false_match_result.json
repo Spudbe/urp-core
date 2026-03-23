@@ -1,0 +1,12 @@
+{
+  "claim_fingerprint": "sha256:aaa3aeb7c8cf96126e1cf3c81bc3bce71966886cdd2e93eaab2b2afaead2b105",
+  "overall_status": "false",
+  "proposition_results": [
+    {
+      "status": "false",
+      "matched_receipts": [],
+      "detail": "Receipt(s) found for 'compute_fibonacci' but input/output did not match expected values."
+    }
+  ],
+  "summary": "Claim falsified: evidence contradicts one or more propositions."
+}

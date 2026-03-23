@@ -1,0 +1,25 @@
+{
+  "receipt_id": "example-remote-001",
+  "tool_name": "llm_summarize",
+  "tool_version": "2.1.0",
+  "provider_name": "acme_ai",
+  "provider_id": "acme-prod-us-east",
+  "protocol_family": "remote_api",
+  "started_at": "2026-03-23T10:30:00Z",
+  "status": "succeeded",
+  "side_effect_class": "none",
+  "nondeterminism_class": "model_based",
+  "input_inline": {
+    "text": "The quick brown fox jumps over the lazy dog.",
+    "max_length": 20
+  },
+  "input_sha256": "sha256:21f0519239a4c127fd5d389abb82ea493692c42a9f4b9a8f4ef3d314c374d59b",
+  "output_inline": {
+    "summary": "Fox jumps over dog.",
+    "model": "llama-3.3-70b",
+    "tokens_used": 42
+  },
+  "output_sha256": "sha256:2a61ac4a3acf52febe7db49cb9126b0eb356c6b66e950bcd2f81080b20f07da3",
+  "replay_class": "none",
+  "evidence_strength": "provider_signed"
+}
