@@ -29,6 +29,9 @@ demo = ["groq>=0.4.0"]
 # This extra is provided for users who prefer the official SDK in their own code.
 openai = ["openai>=1.0.0"]
 
+[project.scripts]
+trp = "trp.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["trp*"]
 
