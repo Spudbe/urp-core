@@ -1,23 +1,25 @@
 # Current State
 
-Snapshot as of 22 March 2026.
+Snapshot as of 23 March 2026.
 
 ## Status
 
-- **Protocol version:** 0.3.0 (tagged, released)
-- **Tests:** 275 passing
+- **Protocol version:** 0.6.0 (tagged, released)
+- **Tests:** 286 passing
 - **GitHub issues:** 13 created, all closed
 - **Live URL:** https://trp-core-production.up.railway.app
 - **CI:** GitHub Actions running pytest on push and PR
 - **v0.4 features:** All implemented (MCP adapter, JWS signing, batch verification, capability endpoint)
 - **v0.5 features:** All implemented (StructuredClaim, claim-to-evidence matching, A2A adapter, agent-card endpoint)
+- **v0.6 features:** All implemented (RFC 8785 JCS, Claim.create(), remote tool replay, PyPI prep)
 
-## Module Map (16 modules in trp/)
+## Module Map (17 modules in trp/)
 
 | Module | Purpose |
 |--------|---------|
-| `trp/core.py` | All protocol data types: Claim (with optional structured_claim), ProofReference, Stake, Response, ToolReceipt, SettlementMessage, AgentCapability, JWSSignature, and all enums |
-| `trp/message.py` | TRPMessage envelope with protocol versioning (PROTOCOL_VERSION = "0.3.0") |
+| `trp/core.py` | All protocol data types: Claim (with optional structured_claim and Claim.create() factory), ProofReference, Stake, Response, ToolReceipt, SettlementMessage, AgentCapability, JWSSignature, and all enums |
+| `trp/canonical.py` | RFC 8785 JCS canonicalization: canonical_bytes(), canonical_str(), sha256_hex() |
+| `trp/message.py` | TRPMessage envelope with protocol versioning (PROTOCOL_VERSION = "0.6.0") |
 | `trp/structured_claim.py` | StructuredClaim: ToolOutputEquals, ValueComparison, Compound propositions with LogicalOp and ComparisonOp |
 | `trp/claim_verifier.py` | Claim-to-evidence matching engine with three-valued logic (true/false/unknown) |
 | `trp/verify.py` | ToolReceiptVerifier — registry-based replay verification engine with classification validation, batch verification via verify_claim() |

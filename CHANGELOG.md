@@ -2,6 +2,21 @@
 
 All notable changes to TRP are documented here.
 
+## [0.6.0] – 2026-03-23
+
+### Changed
+- **BREAKING**: RFC 8785 JCS canonicalization replaces sorted-key compact JSON for all hash computation and signing
+- **BREAKING**: Module renamed from urp/ to trp/ (Tool Receipt Protocol)
+- **BREAKING**: License changed from BUSL-1.1 to Apache-2.0
+- Protocol version bumped to 0.6.0
+
+### Added
+- `trp/canonical.py` — centralised RFC 8785 JCS canonicalization
+- `Claim.create()` factory method — structured_claim required, statement auto-generated
+- Remote tool replay via `ToolReceiptVerifier.register_remote()`
+- OpenClaw security crisis case study (`docs/OPENCLAW_CASE_STUDY.md`)
+- PyPI package metadata and build configuration
+
 ## [0.5.0] – 2026-03-22
 
 ### Added

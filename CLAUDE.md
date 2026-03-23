@@ -2,13 +2,15 @@
 
 ## Project Overview
 
-TRP (Tool Receipt Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/trp-core, current version 0.3.0 (v0.5 features complete).
+TRP (Tool Receipt Protocol) is a message protocol that lets autonomous agents make claims, attach proof references, and stake economic value on correctness — with other agents able to challenge or verify those claims. It defines the message shapes and interaction flow for structured claim accountability; it does not prescribe transport, identity, or proof format. The repo is at https://github.com/Spudbe/trp-core, current version 0.6.0.
 
 ## Architecture
 
-The codebase has ten layers:
+The codebase has eleven layers:
 
 **Message layer** — `trp/core.py` and `trp/message.py`. All protocol data types as dataclasses with `to_dict()`/`from_dict()`. Core types: `Claim` (with optional `structured_claim` field), `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`.
+
+**Canonicalization layer** — `trp/canonical.py`. RFC 8785 JCS canonicalization for all hash computation and signing. Functions: `canonical_bytes()`, `canonical_str()`, `sha256_hex()`.
 
 **Structured claims layer** — `trp/structured_claim.py` and `trp/claim_verifier.py`. Machine-parseable propositions (ToolOutputEquals, ValueComparison, Compound) with three-valued logic claim-to-evidence matching engine.
 
@@ -32,13 +34,15 @@ The codebase has ten layers:
 
 ## Current State
 
-**275+ passing tests. v0.3.0 tagged. v0.4 and v0.5 features complete. Railway deployed and live.**
+**286+ passing tests. v0.6.0 tagged. Railway deployed and live.**
 
 **v0.3 (released):** ToolReceipt, SettlementMessage, AgentCapability, classification enums, deterministic verification demo, Ollama/OpenAI adapters, centralised LLM agents, security hardening.
 
-**v0.4 (implemented):** ToolReceiptVerifier with batch verification, JWS signing (Ed25519), MCP adapter (wrap/extract/verify), capability discovery endpoint, hash test vectors, 6 classification validation rules.
+**v0.4 (released):** ToolReceiptVerifier with batch verification, JWS signing (Ed25519), MCP adapter (wrap/extract/verify), capability discovery endpoint, hash test vectors, 6 classification validation rules.
 
-**v0.5 (implemented):** StructuredClaim propositions, claim-to-evidence matching engine, A2A adapter (AgentCapability ↔ AgentCard), /.well-known/agent-card.json endpoint, optional structured_claim field on Claim.
+**v0.5 (released):** StructuredClaim propositions, claim-to-evidence matching engine, A2A adapter (AgentCapability ↔ AgentCard), /.well-known/agent-card.json endpoint, optional structured_claim field on Claim.
+
+**v0.6 (released):** RFC 8785 JCS canonicalization, Claim.create() factory with required structured_claim, remote tool replay via register_remote(), PyPI package preparation, OpenClaw case study.
 
 ## Engineering Conventions
 
@@ -90,10 +94,10 @@ python server.py
 
 ## Next Priorities
 
-1. RFC 8785 (JCS) canonicalization — align with A2A signing requirements (v0.6)
-2. Claim.structured_claim migration — make StructuredClaim the primary claim format
-3. Sync SPEC.md/SPEC-v2.md with all v0.4-v0.5 implementation details
-4. EvidenceBundle — composite evidence grouping multiple receipts and attestations
+1. Sync SPEC.md/SPEC-v2.md with all v0.4-v0.6 implementation details
+2. EvidenceBundle — composite evidence grouping multiple receipts and attestations
+3. DID-based identity and key resolution
+4. Timestamp authorities for non-repudiation
 
 ## Provider Notes
 
@@ -107,6 +111,7 @@ python server.py
 - `websockets>=12.0` — networked simulations
 - `groq>=0.4.0` — Groq LLM adapter
 - `jwcrypto>=1.5.6` — Ed25519 JWS signing
+- `jcs>=0.2` — RFC 8785 JSON Canonicalization Scheme
 - `fastapi>=0.115.0` + `uvicorn>=0.30.0` — web server (optional)
 - `httpx>=0.27.0` — test client for FastAPI tests
 
