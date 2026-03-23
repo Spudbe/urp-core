@@ -6,9 +6,9 @@ TRP (Tool Receipt Protocol) is a message protocol that lets autonomous agents ma
 
 ## Architecture
 
-The codebase has eleven layers:
+The codebase has twelve layers:
 
-**Message layer** — `trp/core.py` and `trp/message.py`. All protocol data types as dataclasses with `to_dict()`/`from_dict()`. Core types: `Claim` (with optional `structured_claim` field), `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`.
+**Message layer** — `trp/core.py` and `trp/message.py`. All protocol data types as dataclasses with `to_dict()`/`from_dict()`. Core types: `Claim` (with optional `structured_claim` field and `Claim.create()` factory), `ProofReference`, `Stake`, `Response`, `ToolReceipt`, `SettlementMessage`, `EvidenceBundle`, `AgentCapability`. Enums: `ClaimType`, `Decision`, `SettlementOutcome`, `EvidenceStrength`, `NondeterminismClass`, `SideEffectClass`, `ReplayClass`, `ClaimKind`, `EvidenceType`. Supporting types: `AgentIdentity`, `StakePolicy`, `JWSSignature`.
 
 **Canonicalization layer** — `trp/canonical.py`. RFC 8785 JCS canonicalization for all hash computation and signing. Functions: `canonical_bytes()`, `canonical_str()`, `sha256_hex()`.
 
@@ -30,11 +30,13 @@ The codebase has eleven layers:
 
 **LLM adapter layer** — `trp/llm.py`. `LLMAdapter` ABC with `GroqAdapter`, `OllamaAdapter`, `OpenAIAdapter`.
 
-**Web server** — `server.py`. FastAPI with SSE. Endpoints: `/run-simulation`, `/run-deterministic`, `/.well-known/trp-capability.json`, `/.well-known/agent-card.json`, `/debug-env`. Rate limiting, max claim length. Deployed at https://trp-core-production.up.railway.app.
+**CLI layer** — `trp/cli.py`. Command-line interface: `trp verify`, `trp match`, `trp hash`, `trp version`.
+
+**Web server** — `server.py`. FastAPI with SSE. Endpoints: `/run-simulation`, `/run-deterministic`, `/.well-known/trp-capability.json`, `/.well-known/agent-card.json`, `/api/verify`, `/api/match`, `/api/hash`, `/api/schemas/tool-receipt`, `/debug-env`. Rate limiting, max claim length. Deployed at https://trp-core-production.up.railway.app.
 
 ## Current State
 
-**286+ passing tests. v0.6.0 tagged. Railway deployed and live.**
+**300+ passing tests. v0.6.0 tagged. Railway deployed and live.**
 
 **v0.3 (released):** ToolReceipt, SettlementMessage, AgentCapability, classification enums, deterministic verification demo, Ollama/OpenAI adapters, centralised LLM agents, security hardening.
 
@@ -42,7 +44,7 @@ The codebase has eleven layers:
 
 **v0.5 (released):** StructuredClaim propositions, claim-to-evidence matching engine, A2A adapter (AgentCapability ↔ AgentCard), /.well-known/agent-card.json endpoint, optional structured_claim field on Claim.
 
-**v0.6 (released):** RFC 8785 JCS canonicalization, Claim.create() factory with required structured_claim, remote tool replay via register_remote(), PyPI package preparation, OpenClaw case study.
+**v0.6 (released):** RFC 8785 JCS canonicalization, Claim.create() factory with required structured_claim, remote tool replay via register_remote(), EvidenceBundle composite evidence type, CLI (`trp verify/match/hash/version`), REST API endpoints (`/api/verify`, `/api/match`, `/api/hash`, `/api/schemas/tool-receipt`), examples directory, PyPI package preparation, OpenClaw case study.
 
 ## Engineering Conventions
 
@@ -95,9 +97,9 @@ python server.py
 ## Next Priorities
 
 1. Sync SPEC.md/SPEC-v2.md with all v0.4-v0.6 implementation details
-2. EvidenceBundle — composite evidence grouping multiple receipts and attestations
-3. DID-based identity and key resolution
-4. Timestamp authorities for non-repudiation
+2. DID-based identity and key resolution
+3. Timestamp authorities for non-repudiation
+4. PyPI publication
 
 ## Provider Notes
 

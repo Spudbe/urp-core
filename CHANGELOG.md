@@ -14,8 +14,12 @@ All notable changes to TRP are documented here.
 - `trp/canonical.py` — centralised RFC 8785 JCS canonicalization
 - `Claim.create()` factory method — structured_claim required, statement auto-generated
 - Remote tool replay via `ToolReceiptVerifier.register_remote()`
+- `EvidenceBundle` — composite evidence type grouping receipts, document hashes, and attestations
+- `trp/cli.py` — CLI entry point (`trp verify`, `trp match`, `trp hash`, `trp version`)
+- REST API endpoints: `POST /api/verify`, `POST /api/match`, `POST /api/hash`, `GET /api/schemas/tool-receipt`
+- `examples/` directory with real JSON receipt, claim, and verification artifacts
 - OpenClaw security crisis case study (`docs/OPENCLAW_CASE_STUDY.md`)
-- PyPI package metadata and build configuration
+- PyPI package metadata, build configuration, and CLI entry point
 
 ## [0.5.0] – 2026-03-22
 
