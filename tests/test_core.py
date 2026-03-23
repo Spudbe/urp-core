@@ -516,3 +516,20 @@ class TestEvidenceBundle:
         b2 = EvidenceBundle(bundle_id="b", created_at="2026-01-01T00:00:00Z",
                            document_hashes={"file.txt": "sha256:xxx"})
         assert b1.fingerprint() != b2.fingerprint()
+
+    def test_bundle_scope_round_trip(self):
+        scope = {"workflow_id": "wf-123", "session_id": "s-456"}
+        b = EvidenceBundle(bundle_id="scope-test", created_at="2026-01-01T00:00:00Z",
+                          bundle_scope=scope)
+        d = b.to_dict()
+        assert d["bundle_scope"] == scope
+        restored = EvidenceBundle.from_dict(d)
+        assert restored.bundle_scope == scope
+
+    def test_signature_field_round_trip(self):
+        b = EvidenceBundle(bundle_id="sig-test", created_at="2026-01-01T00:00:00Z",
+                          signature="test-sig-value")
+        d = b.to_dict()
+        assert d["signature"] == "test-sig-value"
+        restored = EvidenceBundle.from_dict(d)
+        assert restored.signature == "test-sig-value"

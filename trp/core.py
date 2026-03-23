@@ -419,6 +419,8 @@ class EvidenceBundle:
         attestations: List of free-form attestation dicts (e.g. signed statements).
         created_at: ISO 8601 timestamp.
         notes: Optional human-readable description.
+        signature: Optional JWS compact token when signed.
+        bundle_scope: Optional metadata dict (e.g. workflow_id, session_id).
     """
     bundle_id: str
     receipts: list[ToolReceipt] = field(default_factory=list)
@@ -426,6 +428,8 @@ class EvidenceBundle:
     attestations: list[dict] = field(default_factory=list)
     created_at: str = ""
     notes: str = ""
+    signature: Optional[str] = None
+    bundle_scope: Optional[dict] = None
 
     def __post_init__(self):
         if not self.bundle_id:
@@ -444,6 +448,10 @@ class EvidenceBundle:
         }
         if self.notes:
             d["notes"] = self.notes
+        if self.signature is not None:
+            d["signature"] = self.signature
+        if self.bundle_scope is not None:
+            d["bundle_scope"] = self.bundle_scope
         return d
 
     @classmethod
@@ -455,6 +463,8 @@ class EvidenceBundle:
             attestations=data.get("attestations", []),
             created_at=data.get("created_at", ""),
             notes=data.get("notes", ""),
+            signature=data.get("signature"),
+            bundle_scope=data.get("bundle_scope"),
         )
 
     def fingerprint(self) -> str:

@@ -345,3 +345,65 @@ def verify_message_envelope(
     }
     payload = canonical_json_bytes(wrapper)
     return verify_detached(payload, signature, public_jwk)
+
+
+def sign_evidence_bundle(
+    bundle,  # EvidenceBundle
+    private_jwk: jwk.JWK,
+    kid: Optional[str] = None,
+) -> "EvidenceBundle":
+    """Sign an EvidenceBundle and return a new bundle with the signature.
+
+    Signs the canonical JSON of the bundle dict (excluding the signature field).
+
+    Args:
+        bundle: The EvidenceBundle to sign.
+        private_jwk: The Ed25519 private JWK.
+        kid: Optional key ID to include in the JWS header.
+
+    Returns:
+        A new EvidenceBundle with the signature field set.
+    """
+    from trp.core import EvidenceBundle
+    signable = bundle.to_dict()
+    signable.pop("signature", None)
+    payload = canonical_json_bytes(signable)
+    sig = sign_detached(payload, private_jwk, kid=kid, typ="trp-bundle+jws")
+
+    return EvidenceBundle(
+        bundle_id=bundle.bundle_id,
+        receipts=bundle.receipts,
+        document_hashes=bundle.document_hashes,
+        attestations=bundle.attestations,
+        created_at=bundle.created_at,
+        notes=bundle.notes,
+        signature=json.dumps(sig.to_dict()),
+        bundle_scope=bundle.bundle_scope,
+    )
+
+
+def verify_evidence_bundle_signature(
+    bundle,  # EvidenceBundle
+    public_jwk: jwk.JWK,
+) -> bool:
+    """Verify a signed EvidenceBundle.
+
+    Args:
+        bundle: The signed EvidenceBundle.
+        public_jwk: The Ed25519 public JWK.
+
+    Returns:
+        True if the signature is valid, False otherwise.
+    """
+    if bundle.signature is None:
+        return False
+    try:
+        sig_data = json.loads(bundle.signature)
+        sig = JWSSignature.from_dict(sig_data)
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return False
+
+    signable = bundle.to_dict()
+    signable.pop("signature", None)
+    payload = canonical_json_bytes(signable)
+    return verify_detached(payload, sig, public_jwk)

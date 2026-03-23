@@ -16,14 +16,17 @@ from trp.core import (
     ToolReceipt,
 )
 from trp.message import TRPMessage
+from trp.core import EvidenceBundle
 from trp.signing import (
     _update_evidence_strength,
     canonical_json_bytes,
     generate_ed25519_keypair,
     sign_detached,
+    sign_evidence_bundle,
     sign_message_envelope,
     sign_tool_receipt,
     verify_detached,
+    verify_evidence_bundle_signature,
     verify_message_envelope,
     verify_tool_receipt_signature,
 )
@@ -285,3 +288,43 @@ class TestMessageEnvelopeSigning:
         header = json.loads(base64.urlsafe_b64decode(padded))
         assert header["kid"] == "envelope-key"
         assert header["typ"] == "trp-message+jws"
+
+
+class TestEvidenceBundleSigning:
+    """Tests for sign_evidence_bundle / verify_evidence_bundle_signature."""
+
+    def _make_bundle(self, **overrides):
+        receipt = _make_receipt()
+        defaults = dict(
+            bundle_id="sign-test-bundle",
+            receipts=[receipt],
+            document_hashes={"report.pdf": "sha256:abc123"},
+            created_at="2026-01-01T00:00:00Z",
+        )
+        defaults.update(overrides)
+        return EvidenceBundle(**defaults)
+
+    def test_sign_bundle(self):
+        priv, pub = generate_ed25519_keypair()
+        bundle = self._make_bundle()
+        signed = sign_evidence_bundle(bundle, priv)
+        assert signed.signature is not None
+        assert signed.bundle_id == bundle.bundle_id
+
+    def test_verify_signed_bundle(self):
+        priv, pub = generate_ed25519_keypair()
+        bundle = self._make_bundle()
+        signed = sign_evidence_bundle(bundle, priv)
+        assert verify_evidence_bundle_signature(signed, pub) is True
+
+    def test_verify_tampered_bundle(self):
+        priv, pub = generate_ed25519_keypair()
+        bundle = self._make_bundle()
+        signed = sign_evidence_bundle(bundle, priv)
+        signed.notes = "tampered"
+        assert verify_evidence_bundle_signature(signed, pub) is False
+
+    def test_unsigned_bundle_verification(self):
+        _, pub = generate_ed25519_keypair()
+        bundle = self._make_bundle()
+        assert verify_evidence_bundle_signature(bundle, pub) is False
