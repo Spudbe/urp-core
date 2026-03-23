@@ -19,6 +19,11 @@ All notable changes to TRP are documented here.
 - REST API endpoints: `POST /api/verify`, `POST /api/match`, `POST /api/hash`, `GET /api/schemas/tool-receipt`
 - `examples/` directory with real JSON receipt, claim, and verification artifacts
 - OpenClaw security crisis case study (`docs/OPENCLAW_CASE_STUDY.md`)
+- Conformance test vectors (`/conformance/`) for canonical JSON, receipt hashes, signatures, and claim matching
+- EvidenceBundle signing via `sign_evidence_bundle()` / `verify_evidence_bundle_signature()`
+- EvidenceBundle `bundle_scope` metadata field
+- Getting Started guide (`docs/getting-started.md`)
+- Additional examples: compound claim, false match, evidence bundle, remote tool receipt
 - PyPI package metadata, build configuration, and CLI entry point
 
 ## [0.5.0] – 2026-03-22

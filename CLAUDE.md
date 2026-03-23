@@ -36,7 +36,7 @@ The codebase has twelve layers:
 
 ## Current State
 
-**300+ passing tests. v0.6.0 tagged. Railway deployed and live.**
+**309+ passing tests. v0.6.0 tagged. Railway deployed and live.**
 
 **v0.3 (released):** ToolReceipt, SettlementMessage, AgentCapability, classification enums, deterministic verification demo, Ollama/OpenAI adapters, centralised LLM agents, security hardening.
 
@@ -44,7 +44,7 @@ The codebase has twelve layers:
 
 **v0.5 (released):** StructuredClaim propositions, claim-to-evidence matching engine, A2A adapter (AgentCapability ↔ AgentCard), /.well-known/agent-card.json endpoint, optional structured_claim field on Claim.
 
-**v0.6 (released):** RFC 8785 JCS canonicalization, Claim.create() factory with required structured_claim, remote tool replay via register_remote(), EvidenceBundle composite evidence type, CLI (`trp verify/match/hash/version`), REST API endpoints (`/api/verify`, `/api/match`, `/api/hash`, `/api/schemas/tool-receipt`), examples directory, PyPI package preparation, OpenClaw case study.
+**v0.6 (released):** RFC 8785 JCS canonicalization, Claim.create() factory with required structured_claim, remote tool replay via register_remote(), EvidenceBundle (with signing and bundle_scope), CLI (`trp verify/match/hash/version`), REST API endpoints (`/api/verify`, `/api/match`, `/api/hash`, `/api/schemas/tool-receipt`), conformance test vectors (`/conformance/`), examples directory, Getting Started guide, PyPI package preparation, OpenClaw case study.
 
 ## Engineering Conventions
 
