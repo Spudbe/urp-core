@@ -166,7 +166,7 @@ class TestCapabilityEndpoint:
 
     def test_contains_protocol_version(self, client):
         data = client.get("/.well-known/trp-capability.json").json()
-        assert data["protocol_version"] == "0.3.0"
+        assert data["protocol_version"] == "0.6.0"
 
     def test_contains_agent_identity(self, client):
         data = client.get("/.well-known/trp-capability.json").json()
@@ -213,7 +213,7 @@ class TestCapabilityEndpoint:
         client = TestClient(app)
         data = client.get("/.well-known/trp-capability.json").json()
         cap = AgentCapability.from_dict(data)
-        assert cap.protocol_version == "0.3.0"
+        assert cap.protocol_version == "0.6.0"
         assert cap.agent.id == "trp-demo-server"
 
 
@@ -242,4 +242,4 @@ class TestAgentCardEndpoint:
         from trp.a2a_adapter import a2a_card_to_trp_capability
         data = client.get("/.well-known/agent-card.json").json()
         cap = a2a_card_to_trp_capability(data)
-        assert cap.protocol_version == "0.3.0"
+        assert cap.protocol_version == "0.6.0"

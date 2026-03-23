@@ -359,14 +359,14 @@ class TestJWSSignature:
 
 def _make_capability(**overrides) -> AgentCapability:
     defaults = {
-        "protocol_version": "0.3.0",
+        "protocol_version": "0.6.0",
         "agent": AgentIdentity(id="a-1", name="TestAgent", version="1.0"),
         "supported_claim_types": [ClaimType.ASSERTION],
         "supported_claim_kinds": [ClaimKind.FACTUAL_ASSERTION],
         "accepted_evidence_types": [EvidenceType.TOOL_RECEIPT],
         "minimum_evidence_strength": EvidenceStrength.UNSIGNED,
         "stake_policy": StakePolicy(),
-        "compatible_protocol_versions": ["0.3.0"],
+        "compatible_protocol_versions": ["0.6.0"],
     }
     defaults.update(overrides)
     return AgentCapability(**defaults)
@@ -375,7 +375,7 @@ def _make_capability(**overrides) -> AgentCapability:
 class TestAgentCapability:
     def test_minimal_valid(self):
         cap = _make_capability()
-        assert cap.protocol_version == "0.3.0"
+        assert cap.protocol_version == "0.6.0"
         assert cap.agent.name == "TestAgent"
         assert cap.supported_claim_kinds == [ClaimKind.FACTUAL_ASSERTION]
         d = cap.to_dict()

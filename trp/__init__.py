@@ -1,9 +1,28 @@
-"""Initialize the trp package.
+"""TRP — Tool Receipt Protocol.
 
-This file makes the `trp` directory a Python package so that modules like
-`trp.agent`, `trp.core`, `trp.ledger` and `trp.knowledge_base` can be
-imported from scripts outside the package. It does not need to contain
-anything else.
+Verifiable tool call accountability for AI agents.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.6.0"
+
+from trp.core import (
+    Claim,
+    ClaimKind,
+    ClaimType,
+    ToolReceipt,
+    AgentCapability,
+    SettlementMessage,
+    EvidenceStrength,
+    NondeterminismClass,
+    SideEffectClass,
+    ReplayClass,
+)
+from trp.structured_claim import (
+    StructuredClaim,
+    ToolOutputEquals,
+    ValueComparison,
+    Compound,
+)
+from trp.verify import ToolReceiptVerifier
+from trp.claim_verifier import match_claim
+from trp.message import TRPMessage

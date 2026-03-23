@@ -23,14 +23,14 @@ from trp.a2a_adapter import (
 
 def _make_capability(**overrides) -> AgentCapability:
     defaults = dict(
-        protocol_version="0.3.0",
-        agent=AgentIdentity(id="test-agent", name="Test Agent", version="0.3.0"),
+        protocol_version="0.6.0",
+        agent=AgentIdentity(id="test-agent", name="Test Agent", version="0.6.0"),
         supported_claim_types=[ClaimType.ASSERTION],
         supported_claim_kinds=[ClaimKind.TOOL_OUTPUT, ClaimKind.DATA_INTEGRITY],
         accepted_evidence_types=[EvidenceType.TOOL_RECEIPT],
         minimum_evidence_strength=EvidenceStrength.UNSIGNED,
         stake_policy=StakePolicy(required=True, minimum_amount=0.5, currency="URC"),
-        compatible_protocol_versions=["0.3.0"],
+        compatible_protocol_versions=["0.6.0"],
         metadata={
             "live_url": "https://example.com",
             "source": "https://github.com/example/repo",
@@ -65,14 +65,14 @@ class TestUrpToA2a:
     def test_version_from_agent(self):
         cap = _make_capability()
         card = trp_capability_to_a2a_card(cap)
-        assert card["version"] == "0.3.0"
+        assert card["version"] == "0.6.0"
 
     def test_interface_has_trp_binding(self):
         cap = _make_capability()
         card = trp_capability_to_a2a_card(cap)
         iface = card["supportedInterfaces"][0]
         assert iface["protocolBinding"] == "TRP"
-        assert iface["protocolVersion"] == "0.3.0"
+        assert iface["protocolVersion"] == "0.6.0"
 
     def test_interface_url_from_metadata(self):
         cap = _make_capability()
@@ -112,7 +112,7 @@ class TestUrpToA2a:
         trp_ext = [e for e in extensions if e["uri"] == TRP_EXTENSION_URI]
         assert len(trp_ext) == 1
         inline = trp_ext[0]["params"]["trpCapabilityInline"]
-        assert inline["protocol_version"] == "0.3.0"
+        assert inline["protocol_version"] == "0.6.0"
         assert inline["agent"]["id"] == "test-agent"
 
     def test_description_mentions_claim_kinds(self):
@@ -191,7 +191,7 @@ class TestA2aToUrpFallback:
                 }
             ],
             "supportedInterfaces": [
-                {"url": "https://agent.example.com", "protocolBinding": "TRP", "protocolVersion": "0.3.0"}
+                {"url": "https://agent.example.com", "protocolBinding": "TRP", "protocolVersion": "0.6.0"}
             ],
         }
         cap = a2a_card_to_trp_capability(card)
@@ -199,7 +199,7 @@ class TestA2aToUrpFallback:
         assert cap.agent.name == "External Agent"
         assert ClaimKind.TOOL_OUTPUT in cap.supported_claim_kinds
         assert ClaimType.ASSERTION in cap.supported_claim_types
-        assert cap.protocol_version == "0.3.0"
+        assert cap.protocol_version == "0.6.0"
 
     def test_fallback_uses_defaults_for_missing_fields(self):
         card = {

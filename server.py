@@ -737,7 +737,7 @@ async def trp_capability():
             minimum_amount=0.1,
             currency="URC",
         ),
-        compatible_protocol_versions=["0.2.0", "0.3.0"],
+        compatible_protocol_versions=["0.2.0", "0.3.0", "0.6.0"],
         metadata={
             "demo": True,
             "deterministic_tools": list(BUILTIN_TOOLS.keys()),
@@ -773,7 +773,7 @@ def _build_capability() -> AgentCapability:
             minimum_amount=0.1,
             currency="URC",
         ),
-        compatible_protocol_versions=["0.2.0", "0.3.0"],
+        compatible_protocol_versions=["0.2.0", "0.3.0", "0.6.0"],
         metadata={
             "demo": True,
             "deterministic_tools": list(BUILTIN_TOOLS.keys()),
