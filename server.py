@@ -5,7 +5,7 @@ import json
 import os
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -793,6 +793,78 @@ async def agent_card():
     capability = _build_capability()
     card = trp_capability_to_a2a_card(capability)
     return JSONResponse(content=card)
+
+# ---------------------------------------------------------------------------
+# REST API endpoints for programmatic use
+# ---------------------------------------------------------------------------
+
+@app.post("/api/verify")
+async def api_verify(request: Request):
+    """Verify a ToolReceipt by replaying registered deterministic tools.
+
+    Accepts: ToolReceipt JSON body
+    Returns: VerificationResult JSON
+    """
+    from trp.core import ToolReceipt as TR
+    data = await request.json()
+    receipt = TR.from_dict(data)
+    verifier = _build_deterministic_verifier()
+    result = verifier.verify(receipt)
+    return JSONResponse(content=result.to_dict())
+
+
+@app.post("/api/match")
+async def api_match(request: Request):
+    """Match a StructuredClaim against ToolReceipt evidence.
+
+    Accepts: {"claim": StructuredClaim, "evidence": [ToolReceipt, ...]}
+    Returns: ClaimMatchResult JSON
+    """
+    from trp.core import ToolReceipt as TR
+    data = await request.json()
+    sc = StructuredClaim.from_dict(data["claim"])
+    receipts = [TR.from_dict(r) for r in data.get("evidence", [])]
+    result = match_claim(sc, receipts)
+    return JSONResponse(content=result.to_dict())
+
+
+@app.post("/api/hash")
+async def api_hash(request: Request):
+    """Compute JCS canonical hash of a JSON object.
+
+    Accepts: any JSON body
+    Returns: {"hash": "sha256:..."}
+    """
+    from trp.canonical import sha256_hex
+    data = await request.json()
+    return JSONResponse(content={"hash": sha256_hex(data)})
+
+
+@app.get("/api/schemas/tool-receipt")
+async def schema_tool_receipt():
+    """Return ToolReceipt field descriptions for integrators."""
+    return JSONResponse(content={
+        "type": "ToolReceipt",
+        "description": "A signed, hash-verified record of a tool call.",
+        "fields": {
+            "receipt_id": {"type": "string", "description": "Unique receipt identifier (auto-generated if empty)"},
+            "tool_name": {"type": "string", "description": "Name of the tool invoked"},
+            "tool_version": {"type": "string", "description": "Version of the tool"},
+            "provider_name": {"type": "string", "description": "Name of the tool provider"},
+            "provider_id": {"type": "string", "description": "Unique provider identifier"},
+            "protocol_family": {"type": "string", "description": "Protocol used (e.g. local_python, mcp, remote_api)"},
+            "started_at": {"type": "string", "description": "ISO 8601 timestamp of tool invocation"},
+            "input_inline": {"type": "object", "description": "Tool input (JSON dict)"},
+            "output_inline": {"type": "object", "description": "Tool output (JSON dict)"},
+            "input_sha256": {"type": "string", "description": "JCS canonical hash of input (auto-computed)"},
+            "output_sha256": {"type": "string", "description": "JCS canonical hash of output (auto-computed)"},
+            "nondeterminism_class": {"type": "string", "enum": ["deterministic", "model_based", "randomized", "time_dependent", "environment_dependent"]},
+            "side_effect_class": {"type": "string", "enum": ["none", "read_only", "external_write", "irreversible"]},
+            "replay_class": {"type": "string", "enum": ["strong", "stateful", "weak", "none", "witness_only"]},
+            "evidence_strength": {"type": "string", "enum": ["unsigned", "caller_signed", "provider_signed", "dual_signed"]},
+        },
+    })
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

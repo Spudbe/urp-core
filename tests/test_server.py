@@ -243,3 +243,64 @@ class TestAgentCardEndpoint:
         data = client.get("/.well-known/agent-card.json").json()
         cap = a2a_card_to_trp_capability(data)
         assert cap.protocol_version == "0.6.0"
+
+
+class TestAPIEndpoints:
+    """REST API endpoints for programmatic use."""
+
+    def test_api_verify_valid_receipt(self, client):
+        from trp.deterministic_tools import compute_fibonacci
+        from trp.core import ToolReceipt, SideEffectClass, NondeterminismClass, ReplayClass, EvidenceStrength
+        output = compute_fibonacci({"n": 10})
+        receipt = ToolReceipt(
+            receipt_id="api-test",
+            tool_name="compute_fibonacci", tool_version="1.0.0",
+            provider_name="test", provider_id="test",
+            protocol_family="local_python", started_at="2026-01-01T00:00:00Z",
+            side_effect_class=SideEffectClass.NONE,
+            nondeterminism_class=NondeterminismClass.DETERMINISTIC,
+            replay_class=ReplayClass.STRONG,
+            evidence_strength=EvidenceStrength.UNSIGNED,
+            input_inline={"n": 10}, output_inline=output,
+        )
+        resp = client.post("/api/verify", json=receipt.to_dict())
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "verified_exact"
+
+    def test_api_match_valid(self, client):
+        from trp.deterministic_tools import compute_fibonacci
+        from trp.core import ToolReceipt, SideEffectClass, NondeterminismClass, ReplayClass, EvidenceStrength
+        from trp.structured_claim import StructuredClaim, ToolOutputEquals
+        output = compute_fibonacci({"n": 10})
+        receipt = ToolReceipt(
+            receipt_id="api-match-test",
+            tool_name="compute_fibonacci", tool_version="1.0.0",
+            provider_name="test", provider_id="test",
+            protocol_family="local_python", started_at="2026-01-01T00:00:00Z",
+            side_effect_class=SideEffectClass.NONE,
+            nondeterminism_class=NondeterminismClass.DETERMINISTIC,
+            replay_class=ReplayClass.STRONG,
+            evidence_strength=EvidenceStrength.UNSIGNED,
+            input_inline={"n": 10}, output_inline=output,
+        )
+        sc = StructuredClaim(sc_version="0.6", kind="tool_output",
+            proposition=ToolOutputEquals(tool_name="compute_fibonacci",
+                input={"n": 10}, expected_output=output))
+        resp = client.post("/api/match", json={
+            "claim": sc.to_dict(),
+            "evidence": [receipt.to_dict()],
+        })
+        assert resp.status_code == 200
+        assert resp.json()["overall_status"] == "true"
+
+    def test_api_hash(self, client):
+        resp = client.post("/api/hash", json={"n": 10})
+        assert resp.status_code == 200
+        assert resp.json()["hash"].startswith("sha256:")
+
+    def test_api_schema_tool_receipt(self, client):
+        resp = client.get("/api/schemas/tool-receipt")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["type"] == "ToolReceipt"
+        assert "tool_name" in data["fields"]
