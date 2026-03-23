@@ -1,0 +1,261 @@
+{
+  "vectors": [
+    {
+      "description": "Exact match \u2014 fibonacci(10) = 55",
+      "claim": {
+        "sc_version": "0.6",
+        "kind": "tool_output",
+        "proposition": {
+          "type": "tool_output_equals",
+          "tool_name": "compute_fibonacci",
+          "input": {
+            "n": 10
+          },
+          "expected_output": {
+            "input": 10,
+            "result": 55,
+            "algorithm": "iterative"
+          },
+          "input_match": "exact",
+          "output_match": "exact"
+        }
+      },
+      "evidence": [
+        {
+          "receipt_id": "vector-match",
+          "tool_name": "compute_fibonacci",
+          "tool_version": "1.0.0",
+          "provider_name": "test",
+          "provider_id": "test",
+          "protocol_family": "local_python",
+          "started_at": "2026-01-01T00:00:00Z",
+          "status": "succeeded",
+          "side_effect_class": "none",
+          "nondeterminism_class": "deterministic",
+          "input_inline": {
+            "n": 10
+          },
+          "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+          "output_inline": {
+            "input": 10,
+            "result": 55,
+            "algorithm": "iterative"
+          },
+          "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+          "replay_class": "strong",
+          "evidence_strength": "unsigned"
+        }
+      ],
+      "expected_status": "true"
+    },
+    {
+      "description": "Mismatch \u2014 expects result=99 but receipt has result=55",
+      "claim": {
+        "sc_version": "0.6",
+        "kind": "tool_output",
+        "proposition": {
+          "type": "tool_output_equals",
+          "tool_name": "compute_fibonacci",
+          "input": {
+            "n": 10
+          },
+          "expected_output": {
+            "algorithm": "iterative",
+            "input": 10,
+            "result": 99
+          },
+          "input_match": "exact",
+          "output_match": "exact"
+        }
+      },
+      "evidence": [
+        {
+          "receipt_id": "vector-match",
+          "tool_name": "compute_fibonacci",
+          "tool_version": "1.0.0",
+          "provider_name": "test",
+          "provider_id": "test",
+          "protocol_family": "local_python",
+          "started_at": "2026-01-01T00:00:00Z",
+          "status": "succeeded",
+          "side_effect_class": "none",
+          "nondeterminism_class": "deterministic",
+          "input_inline": {
+            "n": 10
+          },
+          "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+          "output_inline": {
+            "input": 10,
+            "result": 55,
+            "algorithm": "iterative"
+          },
+          "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+          "replay_class": "strong",
+          "evidence_strength": "unsigned"
+        }
+      ],
+      "expected_status": "false"
+    },
+    {
+      "description": "Unknown \u2014 no receipt for nonexistent_tool",
+      "claim": {
+        "sc_version": "0.6",
+        "kind": "tool_output",
+        "proposition": {
+          "type": "tool_output_equals",
+          "tool_name": "nonexistent_tool",
+          "input": {
+            "x": 1
+          },
+          "expected_output": {
+            "y": 2
+          },
+          "input_match": "exact",
+          "output_match": "exact"
+        }
+      },
+      "evidence": [
+        {
+          "receipt_id": "vector-match",
+          "tool_name": "compute_fibonacci",
+          "tool_version": "1.0.0",
+          "provider_name": "test",
+          "provider_id": "test",
+          "protocol_family": "local_python",
+          "started_at": "2026-01-01T00:00:00Z",
+          "status": "succeeded",
+          "side_effect_class": "none",
+          "nondeterminism_class": "deterministic",
+          "input_inline": {
+            "n": 10
+          },
+          "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+          "output_inline": {
+            "input": 10,
+            "result": 55,
+            "algorithm": "iterative"
+          },
+          "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+          "replay_class": "strong",
+          "evidence_strength": "unsigned"
+        }
+      ],
+      "expected_status": "unknown"
+    },
+    {
+      "description": "Value comparison \u2014 fibonacci(10).result > 50",
+      "claim": {
+        "sc_version": "0.6",
+        "kind": "tool_output",
+        "proposition": {
+          "type": "value_comparison",
+          "tool_name": "compute_fibonacci",
+          "input": {
+            "n": 10
+          },
+          "path": [
+            "result"
+          ],
+          "op": ">",
+          "value": 50,
+          "input_match": "exact"
+        }
+      },
+      "evidence": [
+        {
+          "receipt_id": "vector-match",
+          "tool_name": "compute_fibonacci",
+          "tool_version": "1.0.0",
+          "provider_name": "test",
+          "provider_id": "test",
+          "protocol_family": "local_python",
+          "started_at": "2026-01-01T00:00:00Z",
+          "status": "succeeded",
+          "side_effect_class": "none",
+          "nondeterminism_class": "deterministic",
+          "input_inline": {
+            "n": 10
+          },
+          "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+          "output_inline": {
+            "input": 10,
+            "result": 55,
+            "algorithm": "iterative"
+          },
+          "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+          "replay_class": "strong",
+          "evidence_strength": "unsigned"
+        }
+      ],
+      "expected_status": "true"
+    },
+    {
+      "description": "Compound AND \u2014 exact match AND result==55",
+      "claim": {
+        "sc_version": "0.6",
+        "kind": "tool_output",
+        "proposition": {
+          "type": "compound",
+          "op": "and",
+          "args": [
+            {
+              "type": "tool_output_equals",
+              "tool_name": "compute_fibonacci",
+              "input": {
+                "n": 10
+              },
+              "expected_output": {
+                "input": 10,
+                "result": 55,
+                "algorithm": "iterative"
+              },
+              "input_match": "exact",
+              "output_match": "exact"
+            },
+            {
+              "type": "value_comparison",
+              "tool_name": "compute_fibonacci",
+              "input": {
+                "n": 10
+              },
+              "path": [
+                "result"
+              ],
+              "op": "==",
+              "value": 55,
+              "input_match": "exact"
+            }
+          ]
+        }
+      },
+      "evidence": [
+        {
+          "receipt_id": "vector-match",
+          "tool_name": "compute_fibonacci",
+          "tool_version": "1.0.0",
+          "provider_name": "test",
+          "provider_id": "test",
+          "protocol_family": "local_python",
+          "started_at": "2026-01-01T00:00:00Z",
+          "status": "succeeded",
+          "side_effect_class": "none",
+          "nondeterminism_class": "deterministic",
+          "input_inline": {
+            "n": 10
+          },
+          "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+          "output_inline": {
+            "input": 10,
+            "result": 55,
+            "algorithm": "iterative"
+          },
+          "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+          "replay_class": "strong",
+          "evidence_strength": "unsigned"
+        }
+      ],
+      "expected_status": "true"
+    }
+  ],
+  "note": "Generated by trp.claim_verifier.match_claim"
+}

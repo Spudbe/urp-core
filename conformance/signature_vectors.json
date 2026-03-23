@@ -1,0 +1,66 @@
+{
+  "vectors": [
+    {
+      "description": "Ed25519 caller-signed Fibonacci receipt",
+      "public_key_jwk": {
+        "crv": "Ed25519",
+        "kid": "conformance-key-1",
+        "kty": "OKP",
+        "x": "Ndjs8F7aVZ6NFxqJ8MQwg5FLCoIHmhPTxlT8xEaXp44"
+      },
+      "unsigned_receipt": {
+        "receipt_id": "vector-sig-fib",
+        "tool_name": "compute_fibonacci",
+        "tool_version": "1.0.0",
+        "provider_name": "test",
+        "provider_id": "test",
+        "protocol_family": "local_python",
+        "started_at": "2026-01-01T00:00:00Z",
+        "status": "succeeded",
+        "side_effect_class": "none",
+        "nondeterminism_class": "deterministic",
+        "input_inline": {
+          "n": 10
+        },
+        "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+        "output_inline": {
+          "input": 10,
+          "result": 55,
+          "algorithm": "iterative"
+        },
+        "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+        "replay_class": "strong",
+        "evidence_strength": "unsigned"
+      },
+      "signed_receipt": {
+        "receipt_id": "vector-sig-fib",
+        "tool_name": "compute_fibonacci",
+        "tool_version": "1.0.0",
+        "provider_name": "test",
+        "provider_id": "test",
+        "protocol_family": "local_python",
+        "started_at": "2026-01-01T00:00:00Z",
+        "status": "succeeded",
+        "side_effect_class": "none",
+        "nondeterminism_class": "deterministic",
+        "input_inline": {
+          "n": 10
+        },
+        "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+        "output_inline": {
+          "input": 10,
+          "result": 55,
+          "algorithm": "iterative"
+        },
+        "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+        "replay_class": "strong",
+        "evidence_strength": "caller_signed",
+        "signature": "{\"protected\": \"eyJhbGciOiAiRWREU0EiLCAia2lkIjogImNvbmZvcm1hbmNlLWtleS0xIiwgInR5cCI6ICJ0cnAtcmVjZWlwdCtqd3MifQ\", \"signature\": \"LTIMiCWWzBBzGyULFcjktrU3fTnKHk3aACoEf-akRvbmPi6c3E_IPkDpW29zKDtgG7K2oR0GLDLXBQwm52toAA\"}"
+      },
+      "expected_evidence_strength": "caller_signed",
+      "expected_verification": true,
+      "note": "Private key NOT included. Verification uses public key only. Signature is non-deterministic (Ed25519 uses random nonce), so the signature value will differ across runs, but verification against the public key must succeed."
+    }
+  ],
+  "note": "Signature values are non-deterministic; verify against public key, do not compare raw signature bytes."
+}
