@@ -1,7 +1,7 @@
 [project]
 name = "trp-core"
 version = "0.6.0"
-description = "Tool Receipt Protocol — verifiable tool call accountability for AI agents"
+description = "Signed, replay-verifiable receipts for AI agent tool calls"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.10"
