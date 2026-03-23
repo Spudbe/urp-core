@@ -1,0 +1,18 @@
+{
+  "sc_version": "0.6",
+  "kind": "tool_output",
+  "proposition": {
+    "type": "tool_output_equals",
+    "tool_name": "compute_fibonacci",
+    "input": {
+      "n": 10
+    },
+    "expected_output": {
+      "input": 10,
+      "result": 55,
+      "algorithm": "iterative"
+    },
+    "input_match": "exact",
+    "output_match": "exact"
+  }
+}

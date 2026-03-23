@@ -1,0 +1,24 @@
+{
+  "receipt_id": "example-fib-10",
+  "tool_name": "compute_fibonacci",
+  "tool_version": "1.0.0",
+  "provider_name": "local_python",
+  "provider_id": "trp-example",
+  "protocol_family": "local_python",
+  "started_at": "2026-03-23T00:00:00Z",
+  "status": "succeeded",
+  "side_effect_class": "none",
+  "nondeterminism_class": "deterministic",
+  "input_inline": {
+    "n": 10
+  },
+  "input_sha256": "sha256:3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+  "output_inline": {
+    "input": 10,
+    "result": 55,
+    "algorithm": "iterative"
+  },
+  "output_sha256": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+  "replay_class": "strong",
+  "evidence_strength": "unsigned"
+}

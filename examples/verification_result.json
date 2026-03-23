@@ -1,0 +1,7 @@
+{
+  "status": "verified_exact",
+  "receipt_id": "example-fib-10",
+  "expected_output_hash": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+  "actual_output_hash": "sha256:5a8b9c743b28631ed8a5f815c092daafbe690ba091810f6ac22e497c06498e26",
+  "detail": "Replayed output hash matches receipt."
+}

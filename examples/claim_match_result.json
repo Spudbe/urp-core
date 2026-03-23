@@ -1,0 +1,14 @@
+{
+  "claim_fingerprint": "sha256:866d3a9f00d21cffd22c2174c0c65abd9d08c736d4ea51ad68eb8e1c8c8962b8",
+  "overall_status": "true",
+  "proposition_results": [
+    {
+      "status": "true",
+      "matched_receipts": [
+        "example-fib-10"
+      ],
+      "detail": "Receipt example-fib-10 matches: tool=compute_fibonacci, input and output verified."
+    }
+  ],
+  "summary": "Claim verified: all propositions matched by evidence."
+}
