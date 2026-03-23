@@ -110,6 +110,36 @@ class ToolReceiptVerifier:
             raise ValueError("tool_name must not be empty")
         self._registry[tool_name] = fn
 
+    def register_remote(self, tool_name: str, url: str, *, timeout: float = 10.0) -> None:
+        """Register a remote HTTP-callable tool for replay verification.
+
+        The URL should accept POST with JSON body matching the tool's input,
+        and return JSON matching the tool's expected output.
+
+        Args:
+            tool_name: Name of the tool.
+            url: HTTP endpoint URL.
+            timeout: Request timeout in seconds.
+        """
+        import urllib.request
+        import urllib.error
+
+        def remote_caller(inputs: dict) -> dict:
+            import json
+            data = json.dumps(inputs).encode("utf-8")
+            req = urllib.request.Request(
+                url, data=data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    return json.loads(resp.read())
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+                raise RuntimeError(f"Remote tool call failed: {e}")
+
+        self.register(tool_name, remote_caller)
+
     def unregister(self, tool_name: str) -> None:
         """Remove a tool from the registry.
 

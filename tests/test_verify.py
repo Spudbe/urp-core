@@ -3,6 +3,10 @@
 Includes deterministic hash test vectors that catch serialisation drift.
 """
 
+import io
+import json
+from unittest.mock import patch, MagicMock
+
 import pytest
 
 from trp.core import (
@@ -612,3 +616,58 @@ class TestStructuredClaimAwareVerification:
         d = result.to_dict()
         assert "claim_match_status" in d
         assert "claim_match_summary" in d
+
+
+class TestRemoteToolReplay:
+    """Tests for ToolReceiptVerifier.register_remote()."""
+
+    def test_register_remote_adds_tool(self):
+        v = ToolReceiptVerifier()
+        v.register_remote("remote_fib", "http://example.com/fib")
+        assert "remote_fib" in v.registered_tools
+
+    def test_remote_replay_verified_exact(self):
+        """Mock urlopen to return correct fibonacci output → VERIFIED_EXACT."""
+        v = ToolReceiptVerifier()
+        correct_output = {"input": 10, "result": 55, "algorithm": "iterative"}
+        response_bytes = json.dumps(correct_output).encode("utf-8")
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = response_bytes
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        v.register_remote("compute_fibonacci", "http://example.com/fib")
+
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            receipt = _make_receipt()
+            result = v.verify(receipt)
+        assert result.status == VerificationStatus.VERIFIED_EXACT
+
+    def test_remote_replay_output_mismatch(self):
+        """Mock urlopen to return wrong output → OUTPUT_HASH_MISMATCH."""
+        v = ToolReceiptVerifier()
+        wrong_output = {"input": 10, "result": 99, "algorithm": "iterative"}
+        response_bytes = json.dumps(wrong_output).encode("utf-8")
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = response_bytes
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        v.register_remote("compute_fibonacci", "http://example.com/fib")
+
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            receipt = _make_receipt()
+            result = v.verify(receipt)
+        assert result.status == VerificationStatus.OUTPUT_HASH_MISMATCH
+
+    def test_remote_timeout_returns_replay_error(self):
+        """Mock urlopen raising TimeoutError → REPLAY_ERROR."""
+        v = ToolReceiptVerifier()
+        v.register_remote("compute_fibonacci", "http://example.com/fib")
+
+        with patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")):
+            receipt = _make_receipt()
+            result = v.verify(receipt)
+        assert result.status == VerificationStatus.REPLAY_ERROR
